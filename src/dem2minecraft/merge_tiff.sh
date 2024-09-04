@@ -1,0 +1,1 @@
+gdal_merge.py -o data/output/dem/FG-GML-5336-37-DEM5A.tif -ot Float32 -co COMPRESS=LZW data/output/dem/FG-GML-5336-37-DEM5A/*
