@@ -8,3 +8,4 @@ nbt
 frozendict
 networkx
 pyglet
+rasterio
