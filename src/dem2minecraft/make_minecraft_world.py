@@ -77,6 +77,7 @@ grass = anvil.Block("minecraft", "grass_block")
 dirt = anvil.Block("minecraft", "dirt")
 stone = anvil.Block("minecraft", "stone")
 
+
 # 3種類の草を定義
 grass_plant = anvil.Block("minecraft", "grass")
 tall_grass_l = anvil.Block("minecraft", "tall_grass", properties={"half": "lower"})
@@ -85,21 +86,28 @@ tall_grass_u = anvil.Block("minecraft", "tall_grass", properties={"half": "upper
 # ブロックを設置する処理
 def set_blocks(region, x, y, z):
 
-    # 319以下の場合にブロック設置を開始
-    if y <= 319:
-        # 設定するブロックのリスト(草ブロック１、土ブロック１、石ブロック３のレイヤーをつくる)
-        blocks = [grass, dirt, stone, stone, stone]
+    # 設定するブロックのリスト(草ブロック１、土ブロック１、石ブロック３のレイヤーをつくる)
+    blocks = [grass, dirt, stone, stone, stone]
 
-        # 5%の確率で草を生やす
-        if random.random() > 0.95 and y < 319:
-            region.set_block(random.choice([grass_plant, tall_grass_l, tall_grass_u]), x, y + 1, z)
+    # 5%の確率で草を生やす
+    # if random.random() > 0.95 and y < 319:
+    #    region.set_block(random.choice([grass_plant, tall_grass_l, tall_grass_u]), x, y + 1, z)
 
-        # ブロックのレイヤーを設置する。ブロック設置ができない範囲はbreakで抜ける
-        for i, block in enumerate(blocks):
-            if -64 <= y - i <= 319:
-                region.set_block(block, x, y - i, z)
-            else:
-                break
+    # ブロックのレイヤーを設置する。ブロック設置ができない範囲はbreakで抜ける
+    for i in range(-64, min(y, 320)-3):
+
+        ##-62以下は岩盤ブロック
+        if -64 <= i < -62:
+            bedrock = anvil.Block("minecraft", "bedrock")
+            region.set_block(bedrock, x, i, z)
+        else:
+            region.set_block(stone, x, i, z)
+
+    for i in range(min(y, 320)-3, min(y, 320)):
+        region.set_block(dirt, x, i, z)
+
+    region.set_block(grass, x, y, z)
+    
 
 def df_to_map(df):
 
@@ -122,7 +130,7 @@ def df_to_map(df):
         # regionを作成
         region = anvil.EmptyRegion(0, 0)
         x = group["x"] % 512
-        y = group["y"] - min_value - 64
+        y = group["y"] - min_value - 60
         z = group["z"] % 512
 
         for xi, yi, zi in zip(x, y, z):
