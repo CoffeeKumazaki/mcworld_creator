@@ -86,6 +86,9 @@ tall_grass_u = anvil.Block("minecraft", "tall_grass", properties={"half": "upper
 # ブロックを設置する処理
 def set_blocks(region, x, y, z):
 
+    height_limit = 319
+    height = np.clip(y, -64, height_limit)
+
     # 設定するブロックのリスト(草ブロック１、土ブロック１、石ブロック３のレイヤーをつくる)
     blocks = [grass, dirt, stone, stone, stone]
 
@@ -94,7 +97,7 @@ def set_blocks(region, x, y, z):
     #    region.set_block(random.choice([grass_plant, tall_grass_l, tall_grass_u]), x, y + 1, z)
 
     # ブロックのレイヤーを設置する。ブロック設置ができない範囲はbreakで抜ける
-    for i in range(-64, min(y, 320)-3):
+    for i in range(-64, height-3):
 
         ##-62以下は岩盤ブロック
         if -64 <= i < -62:
@@ -103,16 +106,16 @@ def set_blocks(region, x, y, z):
         else:
             region.set_block(stone, x, i, z)
 
-    for i in range(min(y, 320)-3, min(y, 320)):
+    for i in range(max(-64, height-3), height):
         region.set_block(dirt, x, i, z)
 
-    region.set_block(grass, x, y, z)
+    region.set_block(grass, x, height, z)
     
 
 def df_to_map(df):
 
     # 0より大きい値の最小値を取得
-    min_value = df[df['y'] > 0]['y'].min()
+    min_value = df[df['y'] > 10]['y'].min()
     max_value = df['y'].max()
     print(f"min: {min_value}, max: {max_value}")
 
