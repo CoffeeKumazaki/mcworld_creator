@@ -5,11 +5,11 @@ import pandas as pd
 
 
 def tiff_to_frame(tiff_file):
-    # 変換したラスターファイルを開く
     with rasterio.open(tiff_file) as src:
 
         # 幅と高さを取得
         width, height = src.width, src.height
+        print(f"width: {width}, height: {height}")
 
         # 中心点のオフセットを計算
         # 偶数の場合は0.5、奇数の場合は0
@@ -18,20 +18,22 @@ def tiff_to_frame(tiff_file):
 
         # トランスフォーメーション行列から中心座標を計算
         transform = src.transform
-        center_x = transform.c + width / 2.0 * transform.a + offset_x
-        center_y = transform.f + height / 2.0 * transform.e + offset_y
+        # center_x = transform.c + width / 2.0 * transform.a + offset_x
+        # center_y = transform.f + height / 2.0 * transform.e + offset_y
+        center_x = width / 2.0 + offset_x
+        center_y = height / 2.0 + offset_y
 
         # 数値標高データを取得
         data = src.read(1)
 
         # 各ピクセルの中心座標を取得
         y_indices, x_indices = np.indices(data.shape)
-        x_coords = x_indices * transform.a + transform.c + transform.a / 2.0
-        y_coords = y_indices * transform.e + transform.f + transform.e / 2.0
+        #x_coords = x_indices * transform.a + transform.c + transform.a / 2.0
+        #y_coords = y_indices * transform.e + transform.f + transform.e / 2.0
 
         # ピクセル座標と標高値を一次元化
-        x_coords = x_coords.ravel()
-        y_coords = y_coords.ravel()
+        x_coords = x_indices.ravel()
+        y_coords = y_indices.ravel()
         data = data.ravel()
 
         # マイクラの基準にする中心の座標を引く
@@ -64,7 +66,6 @@ def tiff_to_frame(tiff_file):
             "y": data,
             "region": region
         })
-        print(df.head(50))
         return df
 
 # ライブラリのインポート
@@ -101,11 +102,15 @@ def set_blocks(region, x, y, z):
                 break
 
 def df_to_map(df):
-    # -9999のデータを削除
-    df = df.loc[df["y"] != -9999]
 
-    # 最小値を取得
-    min_value = df["y"].min()
+    # 0より大きい値の最小値を取得
+    min_value = df[df['y'] > 0]['y'].min()
+    max_value = df['y'].max()
+    print(f"min: {min_value}, max: {max_value}")
+
+    # yが0の行に64を加算
+    df['y'] = df['y'].replace(0, min_value)
+    # df.mask(df["y"] == 0, min_value, inplace=True)
 
     # regionごとにグループ分け
     grouped = df.groupby(["region"])
