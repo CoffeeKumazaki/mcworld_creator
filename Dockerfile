@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN apt-get update && \
     apt-get upgrade -y
 
-RUN apt-get install -y python3-pip
+RUN apt-get install -y python3-pip cmake libbz2-dev libboost-all-dev
 
 RUN pip install --upgrade pip
 RUN pip install --upgrade setuptools
