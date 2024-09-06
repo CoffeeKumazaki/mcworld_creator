@@ -1,10 +1,10 @@
-# ライブラリのインポート
+import os
 import rasterio
 import numpy as np
 import pandas as pd
 
 
-def tiff_to_frame(tiff_file):
+def tiff_to_frame(tiff_file, output_folder):
     with rasterio.open(tiff_file) as src:
 
         # 幅と高さを取得
@@ -30,6 +30,14 @@ def tiff_to_frame(tiff_file):
         y_indices, x_indices = np.indices(data.shape)
         #x_coords = x_indices * transform.a + transform.c + transform.a / 2.0
         #y_coords = y_indices * transform.e + transform.f + transform.e / 2.0
+
+        # xmin, ymax はアフィン変換の左上の座標
+        xmin, ymax = transform * (0, 0)
+        # xmax, ymin はアフィン変換の右下の座標
+        xmax, ymin = transform * (width, height)
+
+        print(f"{xmin=}, {xmax=}")
+        print(f"{ymin=}, {ymax=}")
 
         # ピクセル座標と標高値を一次元化
         x_coords = x_indices.ravel()
@@ -57,6 +65,8 @@ def tiff_to_frame(tiff_file):
         region_z_str = np.char.mod("%d", region_z)
 
         # ベクトル化した文字列フォーマット操作を適用
+        output_folder = os.path.join(output_folder, "region")
+        os.makedirs(output_folder, exist_ok=True)
         region = np.vectorize("r.{}.{}.mca".format)(region_x, region_z)
 
         # データフレームを作成
@@ -84,7 +94,7 @@ tall_grass_l = anvil.Block("minecraft", "tall_grass", properties={"half": "lower
 tall_grass_u = anvil.Block("minecraft", "tall_grass", properties={"half": "upper"})
 
 # ブロックを設置する処理
-def set_blocks(region, x, y, z):
+def set_blocks(region, x, y, z, road_type=0):
 
     height_limit = 319
     height = np.clip(y, -64, height_limit)
@@ -109,10 +119,13 @@ def set_blocks(region, x, y, z):
     for i in range(max(-64, height-3), height):
         region.set_block(dirt, x, i, z)
 
-    region.set_block(grass, x, height, z)
+    if road_type > 200:
+        region.set_block(stone, x, height, z)
+    else:
+        region.set_block(grass, x, height, z)
     
 
-def df_to_map(df):
+def df_to_map(df, road_df=None):
 
     # 0より大きい値の最小値を取得
     min_value = df[df['y'] > 10]['y'].min()
@@ -123,21 +136,28 @@ def df_to_map(df):
     df['y'] = df['y'].replace(0, min_value)
     # df.mask(df["y"] == 0, min_value, inplace=True)
 
+    if road_df is not None:
+        road_df = road_df.rename(columns={'y': 'road'})
+        df = pd.merge(df, road_df[['x', 'z', 'road']], on=['x', 'z'], how='left')
+
+    print(df.head())
+
     # regionごとにグループ分け
     grouped = df.groupby(["region"])
 
     for _name, group in grouped:
         # 先頭行をスキップ
-        group = group.iloc[1:]
+        # group = group.iloc[1:]
 
         # regionを作成
         region = anvil.EmptyRegion(0, 0)
         x = group["x"] % 512
         y = group["y"] - min_value - 60
         z = group["z"] % 512
+        road_type = group["road"]
 
-        for xi, yi, zi in zip(x, y, z):
-            set_blocks(region, xi, yi, zi)
+        for xi, yi, zi, road_typei in zip(x, y, z, road_type):
+            set_blocks(region, xi, yi, zi, road_typei)
 
         # regionを保存
         region.save(group.iloc[1]["region"])
@@ -147,12 +167,22 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--tiff", required=True, help="tiff file path")
+    parser.add_argument("--output", required=True, help="output folder")
+    parser.add_argument("--road", required=False, help="road tiff file path", default=None)
     args = parser.parse_args()
 
     tiff_file = args.tiff
+    road_file = args.road
+    output_folder = args.output
+    os.makedirs(output_folder, exist_ok=True)
 
     # tiffファイルを読み込む
     df = tiff_to_frame(tiff_file)
 
+    # 道路ファイルを読み込む
+    if road_file is not None:
+        df_road = tiff_to_frame(road_file)
+        print(df_road.head())
+
     # マップを作成
-    df_to_map(df)
+    df_to_map(df, df_road)

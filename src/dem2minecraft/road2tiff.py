@@ -67,7 +67,7 @@ def road_to_tiff(osm_file, min_lat, max_lat, min_lon, max_lon, output_tiff):
     roads = extract_roads_in_bbox(osm_file, min_lat, max_lat, min_lon, max_lon)
 
     # 画像サイズの設定
-    width, height = 1024, 1024
+    width, height = 2500, 1667
     img = Image.new('L', (width, height), 0)  # 'L'はグレースケールモード
     draw = ImageDraw.Draw(img)
 
