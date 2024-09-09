@@ -83,6 +83,7 @@ import random
 grass = anvil.Block("minecraft", "grass_block")
 dirt = anvil.Block("minecraft", "dirt")
 stone = anvil.Block("minecraft", "stone")
+cobblestone = anvil.Block("minecraft", "cobblestone")
 
 
 # 3種類の草を定義
@@ -118,6 +119,8 @@ def set_blocks(region, x, y, z, road_type=0):
 
     if road_type > 200:
         region.set_block(stone, x, height, z)
+    elif road_type > 100:
+        region.set_block(cobblestone, x, height, z)
     else:
         region.set_block(grass, x, height, z)
     

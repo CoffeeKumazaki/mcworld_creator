@@ -20,6 +20,7 @@ class RoadHandler(osmium.SimpleHandler):
     def __init__(self, min_lat, max_lat, min_lon, max_lon):
         osmium.SimpleHandler.__init__(self)
         self.roads = []
+        self.railways = []
         self.min_lat = min_lat
         self.max_lat = max_lat
         self.min_lon = min_lon
@@ -44,6 +45,17 @@ class RoadHandler(osmium.SimpleHandler):
                     # 無効なノードはスキップ
                     continue
 
+        ## 鉄道も道路と同様に抽出
+        if 'railway' in w.tags:
+            for node in w.nodes:
+                if node.location.valid() and self.is_in_bbox(node.location.lat, node.location.lon):
+                    self.railways.append({
+                        'type': 'railway',
+                        'railway_type': w.tags['railway'],
+                        'nodes': [(n.location.lat, n.location.lon) for n in w.nodes if n.location.valid()]
+                    })
+                    break
+
 # OSMファイルを解析して道路情報を抽出
 def extract_roads_in_bbox(osm_file, min_lat, max_lat, min_lon, max_lon):
     handler = RoadHandler(min_lat, max_lat, min_lon, max_lon)
@@ -63,13 +75,27 @@ def latlon_to_pixel(lat, lon, min_lat, max_lat, min_lon, max_lon, width, height)
     return x, y
 
 def road_to_tiff(osm_file, min_lat, max_lat, min_lon, max_lon, output_tiff):
+
+    handler = RoadHandler(min_lat, max_lat, min_lon, max_lon)
+    handler.apply_file(osm_file, locations=True)
+
     # 道路データを取得
-    roads = extract_roads_in_bbox(osm_file, min_lat, max_lat, min_lon, max_lon)
+    roads = handler.roads
+    railways = handler.railways
 
     # 画像サイズの設定
     width, height = 2500, 1667
     img = Image.new('L', (width, height), 0)  # 'L'はグレースケールモード
     draw = ImageDraw.Draw(img)
+
+    # 鉄道を描画
+    for railway in railways:
+        railway_color = 150  # デフォルトの色は紫
+        nodes = railway['nodes']
+        for i in range(len(nodes) - 1):
+            x1, y1 = latlon_to_pixel(nodes[i][0], nodes[i][1], min_lat, max_lat, min_lon, max_lon, width, height)
+            x2, y2 = latlon_to_pixel(nodes[i+1][0], nodes[i+1][1], min_lat, max_lat, min_lon, max_lon, width, height)
+            draw.line((x1, y1, x2, y2), fill=railway_color, width=2)
 
     # 道路を描画
     for road in tqdm.tqdm(roads):
