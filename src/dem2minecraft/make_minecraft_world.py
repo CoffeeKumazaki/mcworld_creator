@@ -48,9 +48,6 @@ def tiff_to_frame(tiff_file, output_folder):
         x_coords = x_coords - center_x
         y_coords = y_coords - center_y
 
-        # y軸(北南)を反転。マイクラ座標に合わせるため
-        y_coords = y_coords * -1
-
         # 小数点以下を排除
         x_coords = np.trunc(x_coords).astype(int)
         y_coords = np.trunc(y_coords).astype(int)
@@ -67,7 +64,7 @@ def tiff_to_frame(tiff_file, output_folder):
         # ベクトル化した文字列フォーマット操作を適用
         output_folder = os.path.join(output_folder, "region")
         os.makedirs(output_folder, exist_ok=True)
-        region = np.vectorize("r.{}.{}.mca".format)(region_x, region_z)
+        region = np.vectorize("{}/r.{}.{}.mca".format)(output_folder,region_x, region_z)
 
         # データフレームを作成
         df = pd.DataFrame({
@@ -140,8 +137,6 @@ def df_to_map(df, road_df=None):
         road_df = road_df.rename(columns={'y': 'road'})
         df = pd.merge(df, road_df[['x', 'z', 'road']], on=['x', 'z'], how='left')
 
-    print(df.head())
-
     # regionごとにグループ分け
     grouped = df.groupby(["region"])
 
@@ -177,11 +172,11 @@ if __name__ == "__main__":
     os.makedirs(output_folder, exist_ok=True)
 
     # tiffファイルを読み込む
-    df = tiff_to_frame(tiff_file)
+    df = tiff_to_frame(tiff_file, output_folder)
 
     # 道路ファイルを読み込む
     if road_file is not None:
-        df_road = tiff_to_frame(road_file)
+        df_road = tiff_to_frame(road_file, output_folder)
         print(df_road.head())
 
     # マップを作成
