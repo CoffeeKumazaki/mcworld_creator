@@ -19,9 +19,10 @@ docker build -t world_builder ./
     ```
 - DEM tiffを1つのDEMにまとめる
     ```
-    gdal_merge.py -o data/output/dem/Hirakawacho.tiff  \
+    gdal_merge.py \
+    -o data/output/dem/Hirakawacho.tiff  \
     -ot Float32 -co COMPRESS=LZW \
-    data/output/dem/FG-GML-5339-45-DEM5A/*
+    data/output/dem/FG-GML-5135-63-DEM5A/*
   ```
 - 道路データをtiff形式に変換
   - road2tiff.pyを実行
