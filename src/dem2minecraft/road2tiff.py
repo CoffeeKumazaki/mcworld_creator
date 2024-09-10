@@ -74,7 +74,7 @@ def latlon_to_pixel(lat, lon, min_lat, max_lat, min_lon, max_lon, width, height)
     y = int((max_lat - lat) / (max_lat - min_lat) * height)
     return x, y
 
-def road_to_tiff(osm_file, min_lat, max_lat, min_lon, max_lon, output_tiff):
+def road_to_tiff(osm_file, output_tiff, min_lat, max_lat, min_lon, max_lon, width, height):
 
     handler = RoadHandler(min_lat, max_lat, min_lon, max_lon)
     handler.apply_file(osm_file, locations=True)
@@ -84,7 +84,7 @@ def road_to_tiff(osm_file, min_lat, max_lat, min_lon, max_lon, output_tiff):
     railways = handler.railways
 
     # 画像サイズの設定
-    width, height = 2500, 1667
+    # width, height = 450, 300
     img = Image.new('L', (width, height), 0)  # 'L'はグレースケールモード
     draw = ImageDraw.Draw(img)
 
@@ -137,8 +137,10 @@ if __name__ == '__main__':
     parser.add_argument("--max_lat", required=True, type=float, help="max latitude")
     parser.add_argument("--min_lon", required=True, type=float, help="min longitude")
     parser.add_argument("--max_lon", required=True, type=float, help="max longitude")
+    parser.add_argument("--width", required=True, type=int, help="image width")
+    parser.add_argument("--height", required=True, type=int, help="image height")
 
     args = parser.parse_args()
 
-    road_to_tiff(args.osm, args.min_lat, args.max_lat, args.min_lon, args.max_lon, args.output)
+    road_to_tiff(args.osm, args.output, args.min_lat, args.max_lat, args.min_lon, args.max_lon, args.width, args.height)
 
