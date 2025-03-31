@@ -96,6 +96,7 @@ def set_blocks(region, x, y, z, road_type=0):
 
     height_limit = 319
     height = np.clip(y, -64, height_limit)
+    height = int(height)
 
     # 設定するブロックのリスト(草ブロック１、土ブロック１、石ブロック３のレイヤーをつくる)
     blocks = [grass, dirt, stone, stone, stone]
@@ -128,7 +129,7 @@ def set_blocks(region, x, y, z, road_type=0):
 def df_to_map(df, road_df=None):
 
     # 0より大きい値の最小値を取得
-    min_value = df[df['y'] > 10]['y'].min()
+    min_value = df[df['y'] > 0]['y'].min()
     max_value = df['y'].max()
     print(f"min: {min_value}, max: {max_value}")
 
