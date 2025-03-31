@@ -1,4 +1,6 @@
 import lxml.etree as et
+import gc
+import tqdm
 import numpy as np
 import os
 import rasterio
@@ -11,7 +13,7 @@ BUILDING_PATH = ".//bldg:Building"
 def load_polygons(file):
 
   doc = et.parse(file, None)
-  polygon = []
+  polygons = []
   for obj in doc.iterfind(BUILDING_PATH, namespaces=doc.getroot().nsmap):
     for polygon in obj.iterfind(".//bldg:lod1Solid//gml:Polygon", namespaces=doc.getroot().nsmap):
       pos_list = polygon.find("./gml:exterior//gml:posList", namespaces=doc.getroot().nsmap)
@@ -29,9 +31,8 @@ def polygon_to_image(polygons, min_lat, max_lat, min_lon, max_lon, width, height
   draw = ImageDraw.Draw(img)
   for polygon in polygons:
     for ring in polygon:
-      height = int(ring[0][2])
-      print(height)
-      draw.polygon([latlon_to_pixel(lat, lon, min_lat, max_lat, min_lon, max_lon, width, height) for lat, lon, _ in ring], fill=height, outline=height)
+      alt = int(ring[0][2])
+      draw.polygon([latlon_to_pixel(lat, lon, min_lat, max_lat, min_lon, max_lon, width, height) for lat, lon, _ in ring], fill=alt)
       
   return img
    
@@ -62,14 +63,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     polygons = []
-    for file in os.listdir(args.input):
+    for file in tqdm.tqdm(os.listdir(args.input)):
       if file.endswith(".gml"):
-        polygon = load_polygons(os.path.join(args.input, file))
-        polygons.extend(polygon)
+        polygons.extend(load_polygons(os.path.join(args.input, file)))
 
     img = polygon_to_image(polygons, args.min_lat, args.max_lat, args.min_lon, args.max_lon, args.width, args.height)
     image_array = np.array(img)
-    print(image_array)
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     with rasterio.open(
         args.output,
