@@ -6,7 +6,11 @@ docker build -t world_builder ./
 
 
 ## データ
+### 基盤地図情報 ダウンロードサービス
 - https://fgd.gsi.go.jp/download/menu.php
+### OpenStreetMap 日本地図データダウンロード
+- ここから全Regionの .osm.pbf をダウンロード
+- https://download.geofabrik.de/asia/japan.html
 
 
 ## 使い方
