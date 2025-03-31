@@ -1,3 +1,4 @@
+import os
 import osmium
 from PIL import Image, ImageDraw
 import rasterio
@@ -109,6 +110,8 @@ def road_to_tiff(osm_file, output_tiff, min_lat, max_lat, min_lon, max_lon, widt
 
     # Pillowの画像をNumPy配列に変換
     image_array = np.array(img)
+    
+    os.makedirs(os.path.dirname(output_tiff), exist_ok=True)
 
     # GeoTIFFに保存
     with rasterio.open(
