@@ -126,7 +126,7 @@ def set_blocks(region, x, y, z, road_type=0):
         region.set_block(grass, x, height, z)
     
 
-def df_to_map(df, road_df=None):
+def df_to_map(df, road_df=None, bldg_df=None):
 
     # 0より大きい値の最小値を取得
     min_value = df[df['y'] > 0]['y'].min()
@@ -141,6 +141,10 @@ def df_to_map(df, road_df=None):
         road_df = road_df.rename(columns={'y': 'road'})
         df = pd.merge(df, road_df[['x', 'z', 'road']], on=['x', 'z'], how='left')
 
+    if bldg_df is not None:
+        bldg_df = bldg_df.rename(columns={'y': 'bldg'})
+        df = pd.merge(df, bldg_df[['x', 'z', 'bldg']], on=['x', 'z'], how='left')
+
     # regionごとにグループ分け
     grouped = df.groupby(["region"])
 
@@ -154,9 +158,14 @@ def df_to_map(df, road_df=None):
         y = group["y"] - min_value - 60
         z = group["z"] % 512
         road_type = group["road"]
+        bldg_height = group["bldg"]
 
-        for xi, yi, zi, road_typei in zip(x, y, z, road_type):
+        for xi, yi, zi, road_typei, bh in zip(x, y, z, road_type, bldg_height):
             set_blocks(region, xi, yi, zi, road_typei)
+
+            if bh > 0:
+                for i in range(bh):
+                    region.set_block(stone, xi, yi + i, zi)
 
         # regionを保存
         region.save(group.iloc[1]["region"])
@@ -168,10 +177,12 @@ if __name__ == "__main__":
     parser.add_argument("--tiff", required=True, help="tiff file path")
     parser.add_argument("--output", required=True, help="output folder")
     parser.add_argument("--road", required=False, help="road tiff file path", default=None)
+    parser.add_argument("--bldg", required=False, help="building tiff file path", default=None)
     args = parser.parse_args()
 
     tiff_file = args.tiff
     road_file = args.road
+    bldg_file = args.bldg
     output_folder = args.output
     os.makedirs(output_folder, exist_ok=True)
 
@@ -181,7 +192,9 @@ if __name__ == "__main__":
     # 道路ファイルを読み込む
     if road_file is not None:
         df_road = tiff_to_frame(road_file, output_folder)
-        print(df_road.head())
+
+    if bldg_file is not None:
+        df_bldg = tiff_to_frame(bldg_file, output_folder)
 
     # マップを作成
-    df_to_map(df, df_road)
+    df_to_map(df, df_road, df_bldg)
