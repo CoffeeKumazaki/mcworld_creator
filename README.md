@@ -39,10 +39,24 @@ docker build -t world_builder ./
   --max_lat 35.6916667 \
   --output ./data/output/road/hirakawacho_rail.tiff
   ```
+- 建物データをtiff形式に保存
+  - citygml2tiff.py を実行
+  ```
+  python dem2minecraft/citygml2tiff.py --input data/gml/24202_yokkaichi-shi_2022_citygml_1_op/udx/bldg/ \
+  --max_lat 34.97094 \
+  --max_lon 136.63632 \
+  --min_lat 34.95882 \
+  --min_lon 136.61486 \
+  --width 2146 \
+  --height 1212 \ 
+  --output data/output/bldg/yokkaichi.tiff
+  ```
+
 - tiff形式のデータを元にマインクラフトのワールドを生成
     ```
     python dem2minecraft/make_minecraft_world.py \
     --tiff data/output/dem/Hirakawacho.tiff \
     --output data/output/world_data/hirakawacho \
+    --bldg data/output/bldg/hikarawacho_bldg.tiff \
     --road ./data/output/road/hirakawacho_rail.tiff 
     ```
