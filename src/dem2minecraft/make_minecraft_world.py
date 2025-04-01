@@ -84,6 +84,8 @@ grass = anvil.Block("minecraft", "grass_block")
 dirt = anvil.Block("minecraft", "dirt")
 stone = anvil.Block("minecraft", "stone")
 cobblestone = anvil.Block("minecraft", "cobblestone")
+gray_concrete_powder = anvil.Block("minecraft", "gray_concrete_powder")
+white_concrete = anvil.Block("minecraft", "white_concrete")
 
 
 # 3種類の草を定義
@@ -119,7 +121,8 @@ def set_blocks(region, x, y, z, road_type=0):
         region.set_block(dirt, x, i, z)
 
     if road_type > 200:
-        region.set_block(stone, x, height, z)
+        ## 道路は gray concrete powder
+        region.set_block(gray_concrete_powder, x, height, z)
     elif road_type > 100:
         region.set_block(cobblestone, x, height, z)
     else:
@@ -165,7 +168,7 @@ def df_to_map(df, road_df=None, bldg_df=None):
 
             if bh > 0:
                 for i in range(bh):
-                    region.set_block(stone, xi, yi + i, zi)
+                    region.set_block(white_concrete, xi, yi + i, zi)
 
         # regionを保存
         region.save(group.iloc[1]["region"])
