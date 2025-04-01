@@ -1,5 +1,4 @@
 import lxml.etree as et
-import gc
 import tqdm
 import numpy as np
 import os
