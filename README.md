@@ -7,11 +7,17 @@ docker build -t world_builder ./
 
 ## データ
 ### 基盤地図情報 ダウンロードサービス
+- 標高データ
 - https://fgd.gsi.go.jp/download/menu.php
+
 ### OpenStreetMap 日本地図データダウンロード
 - ここから全Regionの .osm.pbf をダウンロード
 - https://download.geofabrik.de/asia/japan.html
 
+### Plateau 
+- 3D都市モデル City GML(v3)をダウンロード
+- データ目録に フォルダ内データの意味が記載されている
+- https://www.mlit.go.jp/plateau/open-data/
 
 ## 使い方
 - DEMデータ（標高データ）をダウンロード

@@ -1,4 +1,5 @@
 import os
+import re
 import rasterio
 import numpy as np
 import pandas as pd
@@ -86,7 +87,15 @@ stone = anvil.Block("minecraft", "stone")
 cobblestone = anvil.Block("minecraft", "cobblestone")
 gray_concrete_powder = anvil.Block("minecraft", "gray_concrete_powder")
 white_concrete = anvil.Block("minecraft", "white_concrete")
+water_block = anvil.Block("minecraft", "water")
 
+TNM_BLOCK = [
+    anvil.Block("minecraft", "yellow_stained_glass"),
+    anvil.Block("minecraft", "orange_stained_glass"),
+    anvil.Block("minecraft", "red_stained_glass"),
+    anvil.Block("minecraft", "purple_stained_glass"),
+    anvil.Block("minecraft", "blue_stained_glass"),
+    anvil.Block("minecraft", "cyan_stained_glass"),]
 
 # 3種類の草を定義
 grass_plant = anvil.Block("minecraft", "grass")
@@ -94,7 +103,7 @@ tall_grass_l = anvil.Block("minecraft", "tall_grass", properties={"half": "lower
 tall_grass_u = anvil.Block("minecraft", "tall_grass", properties={"half": "upper"})
 
 # ブロックを設置する処理
-def set_blocks(region, x, y, z, road_type=0):
+def set_blocks(region, x, y, z, road_type=0, tnm_class=0):
 
     height_limit = 319
     height = np.clip(y, -64, height_limit)
@@ -125,11 +134,14 @@ def set_blocks(region, x, y, z, road_type=0):
         region.set_block(gray_concrete_powder, x, height, z)
     elif road_type > 100:
         region.set_block(cobblestone, x, height, z)
+    elif tnm_class > 0:
+        ## 津波の高さを設定
+        region.set_block(TNM_BLOCK[tnm_class], x, height, z)
     else:
         region.set_block(grass, x, height, z)
     
 
-def df_to_map(df, road_df=None, bldg_df=None):
+def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None):
 
     # 0より大きい値の最小値を取得
     min_value = df[df['y'] > 0]['y'].min()
@@ -148,6 +160,14 @@ def df_to_map(df, road_df=None, bldg_df=None):
         bldg_df = bldg_df.rename(columns={'y': 'bldg'})
         df = pd.merge(df, bldg_df[['x', 'z', 'bldg']], on=['x', 'z'], how='left')
 
+    if df_water is not None:
+        df_water = df_water.rename(columns={'y': 'water'})
+        df = pd.merge(df, df_water[['x', 'z', 'water']], on=['x', 'z'], how='left')
+
+    if df_tnm is not None:
+        df_tnm = df_tnm.rename(columns={'y': 'tnm'})
+        df = pd.merge(df, df_tnm[['x', 'z', 'tnm']], on=['x', 'z'], how='left')
+
     # regionごとにグループ分け
     grouped = df.groupby(["region"])
 
@@ -156,19 +176,30 @@ def df_to_map(df, road_df=None, bldg_df=None):
         # group = group.iloc[1:]
 
         # regionを作成
+        match = re.search(r"r\.(-?\d+)\.(-?\d+)\.mca", _name[0])
+        if match:
+            rx, ry = match.groups()
+            rx = int(rx)
+            ry = int(ry)
+
         region = anvil.EmptyRegion(0, 0)
         x = group["x"] % 512
         y = group["y"] - min_value - 60
         z = group["z"] % 512
         road_type = group["road"]
         bldg_height = group["bldg"]
+        is_water = group["water"]
+        tnm_class = group["tnm"]
 
-        for xi, yi, zi, road_typei, bh in zip(x, y, z, road_type, bldg_height):
-            set_blocks(region, xi, yi, zi, road_typei)
+        for xi, yi, zi, road_typei, bh, water, tnm in zip(x, y, z, road_type, bldg_height, is_water, tnm_class):
+            set_blocks(region, xi, yi, zi, road_typei, tnm)
 
             if bh > 0:
                 for i in range(bh):
                     region.set_block(white_concrete, xi, yi + i, zi)
+            elif water > 0:
+                for i in range(3): ## 水深3
+                    region.set_block(water_block, xi, yi - i, zi)
 
         # regionを保存
         region.save(group.iloc[1]["region"])
@@ -181,11 +212,15 @@ if __name__ == "__main__":
     parser.add_argument("--output", required=True, help="output folder")
     parser.add_argument("--road", required=False, help="road tiff file path", default=None)
     parser.add_argument("--bldg", required=False, help="building tiff file path", default=None)
+    parser.add_argument("--water", required=False, help="water tiff file path", default=None)
+    parser.add_argument("--tnm", required=False, help="tnm tiff file path", default=None)
     args = parser.parse_args()
 
     tiff_file = args.tiff
     road_file = args.road
     bldg_file = args.bldg
+    water_file = args.water
+    tnm_file = args.tnm
     output_folder = args.output
     os.makedirs(output_folder, exist_ok=True)
 
@@ -199,5 +234,10 @@ if __name__ == "__main__":
     if bldg_file is not None:
         df_bldg = tiff_to_frame(bldg_file, output_folder)
 
+    if water_file is not None:
+        df_water = tiff_to_frame(water_file, output_folder)
+    if tnm_file is not None:
+        df_tnm = tiff_to_frame(tnm_file, output_folder)
+
     # マップを作成
-    df_to_map(df, df_road, df_bldg)
+    df_to_map(df, df_road, df_bldg, df_water, df_tnm)
