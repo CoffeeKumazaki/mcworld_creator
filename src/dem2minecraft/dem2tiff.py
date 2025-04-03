@@ -95,14 +95,18 @@ def dem2tiff(dem_dir_name, tiff_dir_name):
         dst = fl.replace('.xml', '.tif')
         tiffFile = join(geopath,dst)
         print(f"{tiffFile=}")
-        dst_ds = driver.Create(tiffFile, xlen, ylen, 1, gdal.GDT_Float32, create_options)
+        ## 地表面と水面データを格納する
+        dst_ds = driver.Create(tiffFile, xlen, ylen, 2, gdal.GDT_Float32, create_options)
 
         dst_ds.SetProjection('GEOGCS["JGD2000",DATUM["Japanese_Geodetic_Datum_2000",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6612"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4612"]]')
         dst_ds.SetGeoTransform(geotransform)
         rband = dst_ds.GetRasterBand(1)
+        gband = dst_ds.GetRasterBand(2)
 
-        narray = np.empty((ylen, xlen), np.float32)
-        narray.fill(0)
+        rband_array = np.empty((ylen, xlen), np.float32)
+        gband_array = np.empty((ylen, xlen), np.float32)
+        rband_array.fill(0)
+        gband_array.fill(0)
 
         num_tuples = l2 - l1 + 1
 
@@ -117,15 +121,23 @@ def dem2tiff(dem_dir_name, tiff_dir_name):
             for x in range(sx, xlen):
                 if i < num_tuples:
                     vals = lines[i + l1].split(",")
-                    if len(vals) == 2 and vals[1].find("-99") == -1:
-                        narray[y][x] = float(vals[1])
+                    if len(vals) == 2:
+                        if (vals[0] == "データなし"):
+                            pass
+                        elif (vals[0] == "地表面"):
+                            rband_array[y][x] = float(vals[1])
+                        elif (vals[0].find("水面") != -1):
+                            gband_array[y][x] = float(1)
+                        else:
+                            pass
                     i += 1
                 else:
                     break
             if i == num_tuples: break
             sx = 0
 
-        rband.WriteRaster(0, 0, xlen, ylen, narray.tostring())
+        rband.WriteRaster(0, 0, xlen, ylen, rband_array.tostring())
+        gband.WriteRaster(0, 0, xlen, ylen, gband_array.tostring())
         dst_ds.FlushCache()
 
 def float2(str):
