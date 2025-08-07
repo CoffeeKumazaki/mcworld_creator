@@ -50,6 +50,8 @@ if __name__ == "__main__":
 
     polygons = []
     for file in tqdm.tqdm(os.listdir(args.input)):
+      if not file.endswith(".gml"):
+        continue
       polygons.extend(load_polygons(os.path.join(args.input, file)))
 
     img = polygon_to_image(polygons, args.min_lat, args.max_lat, args.min_lon, args.max_lon, args.width, args.height)

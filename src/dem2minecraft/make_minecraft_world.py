@@ -59,13 +59,14 @@ def tiff_to_frame(tiff_file, output_folder):
         region_z = (y_coords // 512).astype(int)
 
         # 文字列に変換
-        region_x_str = np.char.mod("%d", region_x)
-        region_z_str = np.char.mod("%d", region_z)
+        ## region_x_str = np.char.mod("%d", region_x)
+        ## region_z_str = np.char.mod("%d", region_z)
 
         # ベクトル化した文字列フォーマット操作を適用
         output_folder = os.path.join(output_folder, "region")
         os.makedirs(output_folder, exist_ok=True)
-        region = np.vectorize("{}/r.{}.{}.mca".format)(output_folder,region_x, region_z)
+        region= [f"{output_folder}/r.{rx}.{rz}.mca" 
+                    for rx, rz in zip(region_x, region_z)]
 
         # データフレームを作成
         df = pd.DataFrame({
@@ -155,20 +156,29 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None):
     if road_df is not None:
         road_df = road_df.rename(columns={'y': 'road'})
         df = pd.merge(df, road_df[['x', 'z', 'road']], on=['x', 'z'], how='left')
+    else:
+        df['road'] = None
 
     if bldg_df is not None:
         bldg_df = bldg_df.rename(columns={'y': 'bldg'})
         df = pd.merge(df, bldg_df[['x', 'z', 'bldg']], on=['x', 'z'], how='left')
+    else:
+        df['bldg'] = -1
 
     if df_water is not None:
         df_water = df_water.rename(columns={'y': 'water'})
         df = pd.merge(df, df_water[['x', 'z', 'water']], on=['x', 'z'], how='left')
+    else:
+        df['water'] = -1
 
     if df_tnm is not None:
         df_tnm = df_tnm.rename(columns={'y': 'tnm'})
         df = pd.merge(df, df_tnm[['x', 'z', 'tnm']], on=['x', 'z'], how='left')
+    else:
+        df['tnm'] = -1
 
     # regionごとにグループ分け
+    print("Grouping by region...")
     grouped = df.groupby(["region"])
 
     for _name, group in grouped:
@@ -182,10 +192,10 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None):
             rx = int(rx)
             ry = int(ry)
 
-        region = anvil.EmptyRegion(0, 0)
-        x = group["x"] % 512
+        region = anvil.EmptyRegion(rx, ry)
+        x = group["x"]
         y = group["y"] - min_value - 60
-        z = group["z"] % 512
+        z = group["z"]
         road_type = group["road"]
         bldg_height = group["bldg"]
         is_water = group["water"]
@@ -195,7 +205,8 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None):
             set_blocks(region, xi, yi, zi, road_typei, tnm)
 
             if bh > 0:
-                for i in range(bh):
+                org_alt = yi + min_value + 60
+                for i in range(int(bh - org_alt)):
                     region.set_block(white_concrete, xi, yi + i, zi)
             elif water > 0:
                 for i in range(3): ## 水深3
@@ -225,8 +236,12 @@ if __name__ == "__main__":
     os.makedirs(output_folder, exist_ok=True)
 
     # tiffファイルを読み込む
+    print(f"Reading tiff file: {tiff_file}")
     df = tiff_to_frame(tiff_file, output_folder)
-
+    df_road = None
+    df_bldg = None
+    df_water = None
+    df_tnm = None
     # 道路ファイルを読み込む
     if road_file is not None:
         df_road = tiff_to_frame(road_file, output_folder)

@@ -14,6 +14,8 @@ def load_polygons(file):
   polygons = []
   for obj in doc.iterfind(LUSE_PATH, namespaces=doc.getroot().nsmap):
     luse_class = obj.find("./luse:class", namespaces=doc.getroot().nsmap)
+    if luse_class is None:
+      continue
     if luse_class.text != "204":
       continue
     for polygon in obj.iterfind(".//gml:Polygon", namespaces=doc.getroot().nsmap):
