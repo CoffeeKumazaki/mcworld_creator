@@ -122,14 +122,24 @@ TNM_BLOCK = [
     anvil.Block("minecraft", "blue_stained_glass"),
     anvil.Block("minecraft", "cyan_stained_glass"),]
 
-def build_canyon_palette():
-    palette = []
-    for block_name, thickness in CANYON_LAYERS_CONFIG:
-        block = anvil.Block("minecraft", block_name)
-        palette.extend([block] * thickness)
-    return palette
+def build_canyon_palette(total_height: int):
+    original_thicknesses = [thickness for _, thickness in CANYON_LAYERS_CONFIG]
+    total_original = sum(original_thicknesses)
 
-CANYON_PALETTE = build_canyon_palette()
+    # 各層の厚さを比例配分
+    scaled = [round(t / total_original * total_height) for t in original_thicknesses]
+
+    # 端数を最大の層に吸収させて合計を一致させる
+    diff = total_height - sum(scaled)
+    if diff != 0:
+        largest_idx = scaled.index(max(scaled))
+        scaled[largest_idx] += diff
+
+    palette = []
+    for (block_name, _), thickness in zip(CANYON_LAYERS_CONFIG, scaled):
+        block = anvil.Block("minecraft", block_name)
+        palette.extend([block] * max(thickness, 0))
+    return palette
 
 # 3種類の草を定義
 grass_plant = anvil.Block("minecraft", "grass")
@@ -137,7 +147,7 @@ tall_grass_l = anvil.Block("minecraft", "tall_grass", properties={"half": "lower
 tall_grass_u = anvil.Block("minecraft", "tall_grass", properties={"half": "upper"})
 
 # ブロックを設置する処理
-def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None):
+def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None, canyon_palette=None):
 
     height_limit = 319
     height = np.clip(y, -64, height_limit)
@@ -148,16 +158,16 @@ def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None):
             if -64 <= i < -62:
                 region.set_block(anvil.Block("minecraft", "bedrock"), x, i, z)
             else:
-                idx = (i + 64) % len(CANYON_PALETTE)
-                region.set_block(CANYON_PALETTE[idx], x, i, z)
+                idx = (i + 64) % len(canyon_palette)
+                region.set_block(canyon_palette[idx], x, i, z)
         # 地表面
         if road_type and road_type > 200:
             region.set_block(gray_concrete_powder, x, height, z)
         elif road_type and road_type > 100:
             region.set_block(cobblestone, x, height, z)
         else:
-            idx = (height + 64) % len(CANYON_PALETTE)
-            region.set_block(CANYON_PALETTE[idx], x, height, z)
+            idx = (height + 64) % len(canyon_palette)
+            region.set_block(canyon_palette[idx], x, height, z)
     else:
         # 設定するブロックのリスト(草ブロック１、土ブロック１、石ブロック３のレイヤーをつくる)
         blocks = [grass, dirt, stone, stone, stone]
@@ -238,6 +248,14 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
     else:
         df['tnm'] = -1
 
+    # Canyon パレットをスケール適用後の高さで生成
+    if biome == "canyon":
+        # パレットが必要な長さ: 最大MC高さ + 64 + 1
+        total_height = int((max_value - min_value) * scale) + 5
+        canyon_palette = build_canyon_palette(total_height)
+    else:
+        canyon_palette = None
+
     # regionごとにグループ分け
     print("Grouping by region...")
     grouped = df.groupby(["region"])
@@ -255,6 +273,7 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
 
         region = anvil.EmptyRegion(rx, ry)
         x = group["x"]
+        y_original = group["y"]
         y = ((group["y"] - min_value) * scale - 60).astype(int)
         z = group["z"]
         road_type = group["road"]
@@ -262,12 +281,11 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
         is_water = group["water"]
         tnm_class = group["tnm"]
 
-        for xi, yi, zi, road_typei, bh, water, tnm in zip(x, y, z, road_type, bldg_height, is_water, tnm_class):
-            set_blocks(region, xi, yi, zi, road_typei, tnm, biome=biome)
+        for xi, yi, zi, road_typei, bh, water, tnm, y_orig in zip(x, y, z, road_type, bldg_height, is_water, tnm_class, y_original):
+            set_blocks(region, xi, yi, zi, road_typei, tnm, biome=biome, canyon_palette=canyon_palette)
 
             if bh > 0:
-                org_alt = yi + min_value + 60
-                for i in range(int(bh - org_alt)):
+                for i in range(int((bh - y_orig) * scale)):
                     region.set_block(white_concrete, xi, yi + i, zi)
             elif water > 0:
                 for i in range(3): ## 水深3
