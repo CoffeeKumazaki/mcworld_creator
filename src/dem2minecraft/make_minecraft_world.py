@@ -201,7 +201,7 @@ def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None, canyon_pal
             region.set_block(grass, x, height, z)
     
 
-def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=None, biome=None):
+def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=None, biome=None, water_level=None):
 
     # 0より大きい値の最小値を取得
     min_value = df[df['y'] > 0]['y'].min()
@@ -256,6 +256,13 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
     else:
         canyon_palette = None
 
+    # 水位のMinecraft Y座標を計算
+    water_level_y = None
+    if water_level is not None:
+        water_level_y = int((water_level - min_value) * scale - 60)
+        water_level_y = int(np.clip(water_level_y, -64, 319))
+        print(f"Water level: {water_level}m -> MC Y={water_level_y}")
+
     # regionごとにグループ分け
     print("Grouping by region...")
     grouped = df.groupby(["region"])
@@ -290,6 +297,10 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
             elif water > 0:
                 for i in range(3): ## 水深3
                     region.set_block(water_block, xi, yi - i, zi)
+            elif water_level_y is not None and yi < water_level_y:
+                for wy in range(yi + 1, water_level_y + 1):
+                    if -64 <= wy <= 319:
+                        region.set_block(water_block, xi, wy, zi)
 
         # regionを保存
         region.save(group.iloc[1]["region"])
@@ -308,6 +319,8 @@ if __name__ == "__main__":
                         help="垂直スケール係数（省略時は自動計算）")
     parser.add_argument("--biome", type=str, default=None, choices=["default", "canyon"],
                         help="ブロックパレット: default=草/土/石, canyon=砂岩/テラコッタ地層")
+    parser.add_argument("--water-level", type=float, default=None,
+                        help="水面の標高（メートル）。この標高以下の地形に水を充填")
     parser.add_argument("--no-resample", action="store_true",
                         help="1ピクセル=1ブロックのまま（リサンプリングしない）")
     args = parser.parse_args()
@@ -343,4 +356,4 @@ if __name__ == "__main__":
 
     # マップを作成
     df_to_map(df, df_road, df_bldg, df_water, df_tnm,
-              scale=args.scale, biome=args.biome)
+              scale=args.scale, biome=args.biome, water_level=args.water_level)
