@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import zoom
 
-from grand_canyon.biome_config import CANYON_LAYERS_CONFIG
+from grand_canyon.biome_config import CANYON_LAYERS_CONFIG, LayerConfig
 
 
 def _pixel_size_meters(src):
@@ -122,24 +122,111 @@ TNM_BLOCK = [
     anvil.Block("minecraft", "blue_stained_glass"),
     anvil.Block("minecraft", "cyan_stained_glass"),]
 
-def build_canyon_palette(total_height: int):
-    original_thicknesses = [thickness for _, thickness in CANYON_LAYERS_CONFIG]
+def coord_hash(x: int, y: int, z: int, seed: int = 0) -> int:
+    """FNV-1a inspired hash for coordinate-based deterministic noise."""
+    h = 2166136261 ^ seed
+    h = ((h ^ (x & 0xFFFF)) * 16777619) & 0xFFFFFFFF
+    h = ((h ^ (y & 0xFFFF)) * 16777619) & 0xFFFFFFFF
+    h = ((h ^ (z & 0xFFFF)) * 16777619) & 0xFFFFFFFF
+    h = ((h ^ ((x >> 16) & 0xFFFF)) * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def temple_butte_present(x: int, z: int) -> bool:
+    """30% of 12x12 patches have Temple Butte."""
+    h = coord_hash(x // 12, 0, z // 12, seed=99)
+    return (h % 100) < 30
+
+
+def get_boundary_factor(y_within_layer: int, layer_thickness: int) -> float:
+    """Returns 0.0 at center, up to 1.0 at edges (within 2 blocks)."""
+    if layer_thickness <= 4:
+        return 0.0
+    dist_from_bottom = y_within_layer
+    dist_from_top = layer_thickness - 1 - y_within_layer
+    dist_from_edge = min(dist_from_bottom, dist_from_top)
+    if dist_from_edge >= 2:
+        return 0.0
+    return 1.0 - dist_from_edge / 2.0
+
+
+def _select_with_pattern(x: int, y: int, z: int, h: int, blocks: list, pattern: str, role: str) -> str:
+    """Apply spatial patterns to select among blocks within a role."""
+    if len(blocks) == 1:
+        return blocks[0]
+
+    if pattern == "horizontal_band":
+        if role == "sub":
+            band = (y // 4) % len(blocks)
+        elif role == "accent":
+            band = (y // 2) % len(blocks)
+        else:
+            band = h % len(blocks)
+        return blocks[band]
+
+    elif pattern == "veins":
+        diagonal = (x + 2 * y + z) % (len(blocks) * 7)
+        return blocks[diagonal % len(blocks)]
+
+    elif pattern == "irregular":
+        cell = coord_hash(x // 3, y // 3, z // 3, seed=42)
+        return blocks[cell % len(blocks)]
+
+    else:  # "default"
+        return blocks[h % len(blocks)]
+
+
+def select_canyon_block(x: int, y: int, z: int, layer: LayerConfig, boundary_factor: float) -> str:
+    """Pick Main/Sub/Accent block based on hash threshold and pattern."""
+    h = coord_hash(x, y, z)
+    threshold = h % 100
+
+    # At boundaries, boost sub percentage for blending
+    main_pct = layer.main_pct
+    sub_pct = layer.sub_pct
+    if boundary_factor > 0.0:
+        shift = int(15 * boundary_factor)
+        main_pct = max(main_pct - shift, 10)
+        sub_pct = sub_pct + shift
+
+    if threshold < main_pct:
+        return _select_with_pattern(x, y, z, h >> 8, layer.main, layer.pattern, "main")
+    elif threshold < main_pct + sub_pct:
+        return _select_with_pattern(x, y, z, h >> 8, layer.sub, layer.pattern, "sub")
+    else:
+        return _select_with_pattern(x, y, z, h >> 8, layer.accent, layer.pattern, "accent")
+
+
+def build_canyon_layer_map(total_height: int):
+    """Returns (layer_map, scaled_thicknesses).
+
+    layer_map: list of (layer_index, y_within_layer) for each Y offset.
+    scaled_thicknesses: list of actual thicknesses per layer.
+    """
+    original_thicknesses = [layer.thickness for layer in CANYON_LAYERS_CONFIG]
     total_original = sum(original_thicknesses)
 
-    # 各層の厚さを比例配分
     scaled = [round(t / total_original * total_height) for t in original_thicknesses]
 
-    # 端数を最大の層に吸収させて合計を一致させる
     diff = total_height - sum(scaled)
     if diff != 0:
         largest_idx = scaled.index(max(scaled))
         scaled[largest_idx] += diff
 
-    palette = []
-    for (block_name, _), thickness in zip(CANYON_LAYERS_CONFIG, scaled):
-        block = anvil.Block("minecraft", block_name)
-        palette.extend([block] * max(thickness, 0))
-    return palette
+    layer_map = []
+    for layer_idx, thickness in enumerate(scaled):
+        for y_in_layer in range(max(thickness, 0)):
+            layer_map.append((layer_idx, y_in_layer))
+
+    return layer_map, scaled
+
+
+# Pre-instantiate all unique Block objects for canyon layers
+BLOCK_CACHE: dict[str, anvil.Block] = {}
+for _layer in CANYON_LAYERS_CONFIG:
+    for _name in _layer.main + _layer.sub + _layer.accent:
+        if _name not in BLOCK_CACHE:
+            BLOCK_CACHE[_name] = anvil.Block("minecraft", _name)
 
 # 3種類の草を定義
 grass_plant = anvil.Block("minecraft", "grass")
@@ -147,27 +234,46 @@ tall_grass_l = anvil.Block("minecraft", "tall_grass", properties={"half": "lower
 tall_grass_u = anvil.Block("minecraft", "tall_grass", properties={"half": "upper"})
 
 # ブロックを設置する処理
-def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None, canyon_palette=None):
+def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
+               canyon_layer_map=None, canyon_layer_thicknesses=None):
 
     height_limit = 319
     height = np.clip(y, -64, height_limit)
     height = int(height)
 
     if biome == "canyon":
+        tb_present = temple_butte_present(x, z)
         for i in range(-64, height):
             if -64 <= i < -62:
                 region.set_block(anvil.Block("minecraft", "bedrock"), x, i, z)
             else:
-                idx = (i + 64) % len(canyon_palette)
-                region.set_block(canyon_palette[idx], x, i, z)
+                idx = (i + 64) % len(canyon_layer_map)
+                layer_idx, y_in_layer = canyon_layer_map[idx]
+                layer = CANYON_LAYERS_CONFIG[layer_idx]
+                # Handle Temple Butte absence
+                if layer.discontinuous and not tb_present:
+                    layer_idx = layer_idx - 1
+                    layer = CANYON_LAYERS_CONFIG[layer_idx]
+                    y_in_layer = canyon_layer_thicknesses[layer_idx] - 1
+                boundary = get_boundary_factor(y_in_layer, canyon_layer_thicknesses[layer_idx])
+                block_name = select_canyon_block(x, i, z, layer, boundary)
+                region.set_block(BLOCK_CACHE[block_name], x, i, z)
         # 地表面
         if road_type and road_type > 200:
             region.set_block(gray_concrete_powder, x, height, z)
         elif road_type and road_type > 100:
             region.set_block(cobblestone, x, height, z)
         else:
-            idx = (height + 64) % len(canyon_palette)
-            region.set_block(canyon_palette[idx], x, height, z)
+            idx = (height + 64) % len(canyon_layer_map)
+            layer_idx, y_in_layer = canyon_layer_map[idx]
+            layer = CANYON_LAYERS_CONFIG[layer_idx]
+            if layer.discontinuous and not tb_present:
+                layer_idx = layer_idx - 1
+                layer = CANYON_LAYERS_CONFIG[layer_idx]
+                y_in_layer = canyon_layer_thicknesses[layer_idx] - 1
+            boundary = get_boundary_factor(y_in_layer, canyon_layer_thicknesses[layer_idx])
+            block_name = select_canyon_block(x, height, z, layer, boundary)
+            region.set_block(BLOCK_CACHE[block_name], x, height, z)
     else:
         # 設定するブロックのリスト(草ブロック１、土ブロック１、石ブロック３のレイヤーをつくる)
         blocks = [grass, dirt, stone, stone, stone]
@@ -248,13 +354,12 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
     else:
         df['tnm'] = -1
 
-    # Canyon パレットをスケール適用後の高さで生成
+    # Canyon レイヤーマップをスケール適用後の高さで生成
+    canyon_layer_map = None
+    canyon_layer_thicknesses = None
     if biome == "canyon":
-        # パレットが必要な長さ: 最大MC高さ + 64 + 1
         total_height = int((max_value - min_value) * scale) + 5
-        canyon_palette = build_canyon_palette(total_height)
-    else:
-        canyon_palette = None
+        canyon_layer_map, canyon_layer_thicknesses = build_canyon_layer_map(total_height)
 
     # 水位のMinecraft Y座標を計算
     water_level_y = None
@@ -289,7 +394,9 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
         tnm_class = group["tnm"]
 
         for xi, yi, zi, road_typei, bh, water, tnm, y_orig in zip(x, y, z, road_type, bldg_height, is_water, tnm_class, y_original):
-            set_blocks(region, xi, yi, zi, road_typei, tnm, biome=biome, canyon_palette=canyon_palette)
+            set_blocks(region, xi, yi, zi, road_typei, tnm, biome=biome,
+                       canyon_layer_map=canyon_layer_map,
+                       canyon_layer_thicknesses=canyon_layer_thicknesses)
 
             if bh > 0:
                 for i in range(int((bh - y_orig) * scale)):
