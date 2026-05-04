@@ -197,21 +197,21 @@ def select_canyon_block(x: int, y: int, z: int, layer: LayerConfig, boundary_fac
         return _select_with_pattern(x, y, z, h >> 8, layer.accent, layer.pattern, "accent")
 
 
-def build_canyon_layer_map(total_height: int):
+def build_canyon_layer_map(total_height: int, scale: float):
     """Returns (layer_map, scaled_thicknesses).
 
     layer_map: list of (layer_index, y_within_layer) for each Y offset.
     scaled_thicknesses: list of actual thicknesses per layer.
     """
     original_thicknesses = [layer.thickness for layer in CANYON_LAYERS_CONFIG]
-    total_original = sum(original_thicknesses)
 
-    scaled = [round(t / total_original * total_height) for t in original_thicknesses]
+    # Scale each layer directly using the terrain scale factor
+    scaled = [max(1, round(t * scale)) for t in original_thicknesses]
 
+    # Adjust topmost layer to fill remaining space
     diff = total_height - sum(scaled)
     if diff != 0:
-        largest_idx = scaled.index(max(scaled))
-        scaled[largest_idx] += diff
+        scaled[-1] = max(1, scaled[-1] + diff)
 
     layer_map = []
     for layer_idx, thickness in enumerate(scaled):
@@ -359,7 +359,17 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
     canyon_layer_thicknesses = None
     if biome == "canyon":
         total_height = int((max_value - min_value) * scale) + 5
-        canyon_layer_map, canyon_layer_thicknesses = build_canyon_layer_map(total_height)
+        canyon_layer_map, canyon_layer_thicknesses = build_canyon_layer_map(total_height, scale=scale)
+
+        print("=== Canyon Layer Elevations ===")
+        print(f" {'#':>2} {'Name':<20} {'Y_start':>7} {'Y_end':>7} {'Thickness':>9}")
+        y_cursor = -60
+        for i, layer in enumerate(CANYON_LAYERS_CONFIG):
+            t = canyon_layer_thicknesses[i]
+            y_end = y_cursor + t - 1
+            print(f" {i:>2} {layer.name:<20} {y_cursor:>7} {y_end:>7} {t:>9}")
+            y_cursor += t
+        print("================================")
 
     # 水位のMinecraft Y座標を計算
     water_level_y = None
