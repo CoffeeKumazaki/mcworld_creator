@@ -184,7 +184,7 @@ def select_canyon_block(x: int, y: int, z: int, layer: LayerConfig, boundary_fac
     # At boundaries, boost sub percentage for blending
     main_pct = layer.main_pct
     sub_pct = layer.sub_pct
-    if boundary_factor > 0.0:
+    if boundary_factor > 0.0 and layer.sub_pct > 0:
         shift = int(15 * boundary_factor)
         main_pct = max(main_pct - shift, 10)
         sub_pct = sub_pct + shift
