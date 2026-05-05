@@ -28,7 +28,7 @@ CANYON_LAYERS_CONFIG = [
     LayerConfig(
         name="basement",
         thickness=250,
-        main=["terracotta"],
+        main=["granite"],
         sub=["blackstone", "basalt"],
         accent=["granite", "diorite", "calcite"],
         main_pct=100, sub_pct=0, accent_pct=0,
