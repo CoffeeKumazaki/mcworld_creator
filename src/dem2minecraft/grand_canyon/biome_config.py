@@ -6,7 +6,16 @@
 Minecraftブロック名: https://minecraft.wiki/w/Java_Edition_data_values#Blocks
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+@dataclass
+class FossilConfig:
+    name: str            # 化石名（参照用）
+    block: str           # プレースホルダーブロック
+    cluster_size: int    # セルサイズ (ブロック数)
+    cluster_chance: int  # セルがクラスターになる確率 (per 1000)
+    fill_pct: int        # クラスター内の充填率 (per 100)
 
 
 @dataclass
@@ -22,6 +31,7 @@ class LayerConfig:
     pattern: str            # "horizontal_band" | "irregular" | "veins" | "default"
     discontinuous: bool = False
     discontinuous_pct: float = 1.0
+    fossils: list[FossilConfig] = field(default_factory=list)
 
 
 CANYON_LAYERS_CONFIG = [
@@ -33,6 +43,7 @@ CANYON_LAYERS_CONFIG = [
         accent=["granite", "diorite", "calcite"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="veins",
+        fossils=[],
     ),
     LayerConfig(
         name="tapeats",
@@ -42,6 +53,11 @@ CANYON_LAYERS_CONFIG = [
         accent=["smooth_red_sandstone"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="horizontal_band",
+        fossils=[
+            FossilConfig("三葉虫", "dead_tube_coral_block", 3, 20, 50),
+            FossilConfig("アノマロカリス", "dead_brain_coral_block", 2, 8, 40),
+            FossilConfig("ハルキゲニア", "dead_bubble_coral_block", 2, 10, 40),
+        ],
     ),
     LayerConfig(
         name="bright_angel",
@@ -51,6 +67,11 @@ CANYON_LAYERS_CONFIG = [
         accent=["light_gray_terracotta", "mud", "gravel"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="irregular",
+        fossils=[
+            FossilConfig("三葉虫", "dead_tube_coral_block", 3, 20, 50),
+            FossilConfig("アノマロカリス", "dead_brain_coral_block", 2, 8, 40),
+            FossilConfig("ハルキゲニア", "dead_bubble_coral_block", 2, 10, 40),
+        ],
     ),
     LayerConfig(
         name="muav",
@@ -60,6 +81,11 @@ CANYON_LAYERS_CONFIG = [
         accent=["light_gray_terracotta", "calcite"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="default",
+        fossils=[
+            FossilConfig("三葉虫", "dead_tube_coral_block", 3, 20, 50),
+            FossilConfig("アノマロカリス", "dead_brain_coral_block", 2, 8, 40),
+            FossilConfig("ハルキゲニア", "dead_bubble_coral_block", 2, 10, 40),
+        ],
     ),
     LayerConfig(
         name="temple_butte",
@@ -71,6 +97,7 @@ CANYON_LAYERS_CONFIG = [
         pattern="default",
         discontinuous=True,
         discontinuous_pct=0.30,
+        fossils=[],
     ),
     LayerConfig(
         name="redwall",
@@ -80,6 +107,12 @@ CANYON_LAYERS_CONFIG = [
         accent=["red_terracotta", "red_sandstone"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="default",
+        fossils=[
+            FossilConfig("プラコダーム", "dead_fire_coral_block", 3, 8, 40),
+            FossilConfig("ボスリオレピス", "dead_horn_coral_block", 2, 8, 40),
+            FossilConfig("サンゴ", "tube_coral_block", 4, 20, 65),
+            FossilConfig("ウミユリ", "horn_coral_block", 3, 15, 55),
+        ],
     ),
     LayerConfig(
         name="supai",
@@ -89,6 +122,11 @@ CANYON_LAYERS_CONFIG = [
         accent=["brown_terracotta", "smooth_red_sandstone"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="horizontal_band",
+        fossils=[
+            FossilConfig("オウムガイ", "brain_coral_block", 3, 12, 45),
+            FossilConfig("巻貝", "bubble_coral_block", 3, 15, 50),
+            FossilConfig("二枚貝", "fire_coral_block", 4, 18, 55),
+        ],
     ),
     LayerConfig(
         name="hermit",
@@ -98,6 +136,13 @@ CANYON_LAYERS_CONFIG = [
         accent=["packed_mud", "terracotta"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="irregular",
+        fossils=[
+            FossilConfig("メガネウラ", "bone_block", 2, 5, 35),
+            FossilConfig("サソリ", "sea_lantern", 2, 6, 35),
+            FossilConfig("クモ", "prismarine", 2, 6, 35),
+            FossilConfig("エリオプス", "dark_prismarine", 3, 5, 40),
+            FossilConfig("ディメトロドン", "prismarine_bricks", 3, 4, 35),
+        ],
     ),
     LayerConfig(
         name="coconino",
@@ -107,6 +152,13 @@ CANYON_LAYERS_CONFIG = [
         accent=["sandstone", "white_terracotta"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="horizontal_band",
+        fossils=[
+            FossilConfig("メガネウラ", "bone_block", 2, 5, 35),
+            FossilConfig("サソリ", "sea_lantern", 2, 6, 35),
+            FossilConfig("クモ", "prismarine", 2, 6, 35),
+            FossilConfig("エリオプス", "dark_prismarine", 3, 5, 40),
+            FossilConfig("ディメトロドン", "prismarine_bricks", 3, 4, 35),
+        ],
     ),
     LayerConfig(
         name="toroweap",
@@ -116,6 +168,13 @@ CANYON_LAYERS_CONFIG = [
         accent=["calcite"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="default",
+        fossils=[
+            FossilConfig("メガネウラ", "bone_block", 2, 5, 35),
+            FossilConfig("サソリ", "sea_lantern", 2, 6, 35),
+            FossilConfig("クモ", "prismarine", 2, 6, 35),
+            FossilConfig("エリオプス", "dark_prismarine", 3, 5, 40),
+            FossilConfig("ディメトロドン", "prismarine_bricks", 3, 4, 35),
+        ],
     ),
     LayerConfig(
         name="kaibab",
@@ -125,5 +184,12 @@ CANYON_LAYERS_CONFIG = [
         accent=["diorite", "dirt", "grass_block"],
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="default",
+        fossils=[
+            FossilConfig("メガネウラ", "bone_block", 2, 5, 35),
+            FossilConfig("サソリ", "sea_lantern", 2, 6, 35),
+            FossilConfig("クモ", "prismarine", 2, 6, 35),
+            FossilConfig("エリオプス", "dark_prismarine", 3, 5, 40),
+            FossilConfig("ディメトロドン", "prismarine_bricks", 3, 4, 35),
+        ],
     ),
 ]

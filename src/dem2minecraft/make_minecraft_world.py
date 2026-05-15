@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import zoom
 
-from grand_canyon.biome_config import CANYON_LAYERS_CONFIG, LayerConfig
+from grand_canyon.biome_config import CANYON_LAYERS_CONFIG, LayerConfig, FossilConfig
 
 
 def _pixel_size_meters(src):
@@ -178,6 +178,17 @@ def _select_with_pattern(x: int, y: int, z: int, h: int, blocks: list, pattern: 
 
 def select_canyon_block(x: int, y: int, z: int, layer: LayerConfig, boundary_factor: float) -> str:
     """Pick Main/Sub/Accent block based on hash threshold and pattern."""
+    # --- 化石クラスター判定（最優先） ---
+    for i, fossil in enumerate(layer.fossils):
+        cx = x // fossil.cluster_size
+        cy = y // fossil.cluster_size
+        cz = z // fossil.cluster_size
+        cell_h = coord_hash(cx, cy, cz, seed=700 + i)
+        if (cell_h % 1000) < fossil.cluster_chance:
+            block_h = coord_hash(x, y, z, seed=800 + i)
+            if (block_h % 100) < fossil.fill_pct:
+                return fossil.block
+
     h = coord_hash(x, y, z)
     threshold = h % 100
 
@@ -224,7 +235,10 @@ def build_canyon_layer_map(total_height: int, scale: float):
 # Pre-instantiate all unique Block objects for canyon layers
 BLOCK_CACHE: dict[str, anvil.Block] = {}
 for _layer in CANYON_LAYERS_CONFIG:
-    for _name in _layer.main + _layer.sub + _layer.accent:
+    _all_names = _layer.main + _layer.sub + _layer.accent
+    for _fossil in _layer.fossils:
+        _all_names.append(_fossil.block)
+    for _name in _all_names:
         if _name not in BLOCK_CACHE:
             BLOCK_CACHE[_name] = anvil.Block("minecraft", _name)
 
