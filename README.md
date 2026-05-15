@@ -64,5 +64,27 @@ docker build -t world_builder ./
     --tiff data/output/dem/Hirakawacho.tiff \
     --output data/output/world_data/hirakawacho \
     --bldg data/output/bldg/hikarawacho_bldg.tiff \
-    --road ./data/output/road/hirakawacho_rail.tiff 
+    --road ./data/output/road/hirakawacho_rail.tiff
     ```
+
+## Bedrock ワールドの化石ブロック置換
+
+Java Edition で生成したワールドを Chunker 等で Bedrock 変換した後、化石のプレースホルダーブロック（dead coral, prismarine 等）をカスタムブロック ID に一括置換できます。
+
+- マッピング定義: `scripts/fossil_block_mapping.json`
+- 置換スクリプト: `scripts/replace_fossil_blocks.py`
+
+```bash
+# dry-run（置換数の確認のみ、ワールドは変更しない）
+uv run --with amulet-core python scripts/replace_fossil_blocks.py \
+    --world /path/to/bedrock/world \
+    --mapping scripts/fossil_block_mapping.json \
+    --dry-run
+
+# 実行（ワールドを書き換え）
+uv run --with amulet-core python scripts/replace_fossil_blocks.py \
+    --world /path/to/bedrock/world \
+    --mapping scripts/fossil_block_mapping.json
+```
+
+`fossil_block_mapping.json` の `namespace` を変更すれば、全置換先のカスタムブロック namespace が一括で切り替わります。ビヘイビアパック側でカスタムブロックを定義し、リソースパックで化石テクスチャを適用する前提です。

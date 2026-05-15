@@ -1,0 +1,20 @@
+{
+  "namespace": "psl_gc",
+  "replacements": [
+    {"from": "minecraft:dead_tube_coral_block",  "to": "trilobite"},
+    {"from": "minecraft:dead_brain_coral_block",  "to": "anomalocaris"},
+    {"from": "minecraft:dead_bubble_coral_block", "to": "hallucigenia"},
+    {"from": "minecraft:dead_fire_coral_block",   "to": "placoderm"},
+    {"from": "minecraft:dead_horn_coral_block",   "to": "bothriolepis"},
+    {"from": "minecraft:tube_coral_block",        "to": "coral"},
+    {"from": "minecraft:horn_coral_block",        "to": "crinoid"},
+    {"from": "minecraft:brain_coral_block",       "to": "nautilus"},
+    {"from": "minecraft:bubble_coral_block",      "to": "gastropod"},
+    {"from": "minecraft:fire_coral_block",        "to": "bivalve"},
+    {"from": "minecraft:bone_block",              "to": "meganeura"},
+    {"from": "minecraft:sea_lantern",             "to": "scorpion"},
+    {"from": "minecraft:prismarine",              "to": "spider"},
+    {"from": "minecraft:dark_prismarine",         "to": "eryops"},
+    {"from": "minecraft:prismarine_bricks",       "to": "dimetrodon"}
+  ]
+}
