@@ -15,32 +15,29 @@ from ..noise import perlin_2d, worley_2d_edge
 from ..utils import coord_hash
 
 # ── 1. Base terrain ──
-TERRAIN_BASE = 80
-TERRAIN_AMPLITUDE = 25
-TERRAIN_SCALE = 0.0015
+TERRAIN_BASE = 85
+TERRAIN_AMPLITUDE = 15       # very gentle: Y 85-100
+TERRAIN_SCALE = 0.001        # huge wavelength
 
 # ── 2. Ice sheet ──
 ICE_SHEET_MIN = 15
 ICE_SHEET_MAX = 40
-ICE_SCALE = 0.004
+ICE_SCALE = 0.002            # slow variation
 
 # ── 3. Sea ice ──
 FROZEN_SEA_LEVEL = 90
 SEA_ICE_THICKNESS = 6
 
-# ── 4. Voronoi cracks & pressure ridges ──
-VORONOI_FREQ = 0.012          # cell size ~83 blocks
-CRACK_THRESHOLD = 0.08        # F2-F1 below this = crack
-RIDGE_LOW = 0.08
-RIDGE_HIGH = 0.15             # F2-F1 in this band = pressure ridge
-RIDGE_HEIGHT = 3              # extra blocks piled up at ridges
+# ── 4. Voronoi cracks ──
+VORONOI_FREQ = 0.006          # cell size ~167 blocks (wider spacing)
+CRACK_THRESHOLD = 0.05        # narrower crack width
 
 # ── 5. Polyline crevasses ──
-NUM_CREVASSES = 12
+NUM_CREVASSES = 4
 CREVASSE_HALF_WIDTH = 2
 CREVASSE_DEPTH = 8
-CREVASSE_POINTS = 6           # vertices per polyline
-CREVASSE_SEGMENT_LEN = 80
+CREVASSE_POINTS = 5           # vertices per polyline
+CREVASSE_SEGMENT_LEN = 100
 
 # ── 6. Wind streaks ──
 WIND_ANGLE = 0.3              # radians from +X axis
@@ -63,17 +60,17 @@ def generate_heightmaps(size, seed):
     half = size // 2
     coords = np.arange(-half, half, dtype=np.float64)
 
-    # 1. Smooth base terrain
+    # 1. Smooth base terrain — single octave, no high-frequency detail
     terrain_h = perlin_2d(
         coords * TERRAIN_SCALE, coords * TERRAIN_SCALE,
-        seed=seed, octaves=3, persistence=0.35, lacunarity=2.0,
+        seed=seed, octaves=1,
     )
     terrain_h = (terrain_h * 0.5 + 0.5) * TERRAIN_AMPLITUDE + TERRAIN_BASE
 
-    # 2. Ice thickness variation
+    # 2. Ice thickness variation — single octave
     ice_noise = perlin_2d(
         coords * ICE_SCALE, coords * ICE_SCALE,
-        seed=seed + 100, octaves=2, persistence=0.4, lacunarity=2.0,
+        seed=seed + 100, octaves=1,
     )
     ice_thickness = (ice_noise * 0.5 + 0.5) * (ICE_SHEET_MAX - ICE_SHEET_MIN) + ICE_SHEET_MIN
 
@@ -131,10 +128,16 @@ def _point_to_segment_dist_sq(px, pz, x1, z1, x2, z2):
 
 def make_column(x, z, terrain_h, ice_thick, voronoi_edge_val, wind_val,
                 crevasse_segments, seed):
-    """Build block list for a single (x, z) column."""
-    terrain_height = int(terrain_h)
-    base_ice = int(ice_thick)
-    is_sea = terrain_height < FROZEN_SEA_LEVEL
+    """Build block list for a single (x, z) column.
+
+    All height arithmetic uses float; only one round() at the end to avoid
+    cumulative rounding jitter between adjacent columns.
+    """
+    # Keep as float until final conversion
+    terrain_f = float(terrain_h)
+    ice_f = float(ice_thick)
+    terrain_height = round(terrain_f)
+    is_sea = terrain_f < FROZEN_SEA_LEVEL
 
     blocks = []
 
@@ -148,81 +151,69 @@ def make_column(x, z, terrain_h, ice_thick, voronoi_edge_val, wind_val,
         blocks.append((y, "bedrock"))
 
     # ── Rock fill ──
-    rock_top = terrain_height if not is_sea else terrain_height
-    for y in range(-62, rock_top):
+    for y in range(-62, terrain_height):
         blocks.append((y, _rock_block(x, y, z)))
 
     # ── 7a. Nunatak: exposed rock peak, no ice ──
     if nunatak and not is_sea:
         dist = _nunatak_dist(x, z, seed)
         if dist <= NUNATAK_RADIUS:
-            peak_extra = max(0, int((NUNATAK_RADIUS - dist) * 2.5))
-            for y in range(rock_top, min(rock_top + peak_extra, 320)):
+            peak_extra = max(0, round((NUNATAK_RADIUS - dist) * 2.5))
+            for y in range(terrain_height, min(terrain_height + peak_extra, 320)):
                 blocks.append((y, _nunatak_block(x, y, z)))
-            # Sparse gravel on top
             if peak_extra > 0 and coord_hash(x, 0, z, seed + 770) % 100 < 40:
-                blocks.append((min(rock_top + peak_extra, 319), "gravel"))
+                blocks.append((min(terrain_height + peak_extra, 319), "gravel"))
             return blocks
 
     # ── 3. Sea: water + sea ice ──
     if is_sea:
         for y in range(terrain_height, FROZEN_SEA_LEVEL):
             blocks.append((y, "water"))
-        ice_bottom = FROZEN_SEA_LEVEL
-        ice_top = FROZEN_SEA_LEVEL + SEA_ICE_THICKNESS
+        ice_bottom_f = float(FROZEN_SEA_LEVEL)
+        ice_top_f = ice_bottom_f + SEA_ICE_THICKNESS
     else:
-        # ── 2. Land ice sheet ──
-        ice_bottom = terrain_height
-        ice_top = terrain_height + base_ice
+        # ── 2. Land ice sheet — single float sum ──
+        ice_bottom_f = terrain_f
+        ice_top_f = terrain_f + ice_f
 
-    # ── 4. Voronoi: cracks reduce ice, ridges add height ──
+    # ── 4. Voronoi: cracks only (no ridges) ──
     if voronoi_edge_val < CRACK_THRESHOLD:
-        # Crack: deep cut through ice
-        crack_depth = int((1.0 - voronoi_edge_val / CRACK_THRESHOLD) * CREVASSE_DEPTH)
-        ice_top = max(ice_bottom + 1, ice_top - crack_depth)
-    elif RIDGE_LOW <= voronoi_edge_val <= RIDGE_HIGH:
-        # Pressure ridge: piled ice blocks
-        ridge_factor = 1.0 - abs(voronoi_edge_val - (RIDGE_LOW + RIDGE_HIGH) / 2) / ((RIDGE_HIGH - RIDGE_LOW) / 2)
-        ice_top += int(RIDGE_HEIGHT * ridge_factor)
+        crack_depth = (1.0 - voronoi_edge_val / CRACK_THRESHOLD) * CREVASSE_DEPTH
+        ice_top_f = max(ice_bottom_f + 1.0, ice_top_f - crack_depth)
 
-    # ── 5. Polyline crevasses ──
-    crevasse_cut = 0
+    # ── 5. Polyline crevasses (float) ──
+    crevasse_cut = 0.0
     hw_sq = CREVASSE_HALF_WIDTH ** 2
     for seg in crevasse_segments:
         d_sq = _point_to_segment_dist_sq(float(x), float(z), *seg)
-        if d_sq < hw_sq * 9:  # within 3x half-width for tapering
+        if d_sq < hw_sq * 9:
             closeness = 1.0 - (d_sq / (hw_sq * 9)) ** 0.5
-            cut = int(closeness * CREVASSE_DEPTH)
-            crevasse_cut = max(crevasse_cut, cut)
+            crevasse_cut = max(crevasse_cut, closeness * CREVASSE_DEPTH)
     if crevasse_cut > 0:
-        ice_top = max(ice_bottom + 1, ice_top - crevasse_cut)
+        ice_top_f = max(ice_bottom_f + 1.0, ice_top_f - crevasse_cut)
+
+    # ── Single round: float → int ──
+    ice_bottom = round(ice_bottom_f) if is_sea else terrain_height
+    ice_top = min(round(ice_top_f), 319)
 
     # ── 7b. Moulin: vertical hole through ice ──
     if moulin:
         mdist = _moulin_dist(x, z, seed)
         if mdist <= MOULIN_RADIUS:
-            # Only place a thin ring of ice, interior is air/water
             if mdist == MOULIN_RADIUS:
-                for y in range(ice_bottom, min(ice_top, 320)):
+                for y in range(ice_bottom, ice_top):
                     blocks.append((y, "blue_ice"))
-            # else: leave as air (no ice blocks)
             return blocks
 
     # ── Place ice blocks ──
-    ice_top = min(ice_top, 319)
     for y in range(ice_bottom, ice_top):
         blocks.append((y, _ice_block(y, ice_bottom, ice_top)))
 
-    # ── 6. Wind streaks + snow cap ──
+    # ── 6. Snow cap (uniform) ──
     is_crack = voronoi_edge_val < CRACK_THRESHOLD
-    is_deep_crevasse = crevasse_cut > CREVASSE_DEPTH // 2
+    is_deep_crevasse = crevasse_cut > CREVASSE_DEPTH / 2
     if not is_crack and not is_deep_crevasse:
-        snow_depth = _snow_depth(x, z, seed)
-        if wind_val > WIND_THRESHOLD:
-            snow_depth += 1  # wind-deposited extra snow
-        # Wind erosion on exposed ridges
-        if voronoi_edge_val > RIDGE_HIGH and wind_val < -0.3:
-            snow_depth = max(0, snow_depth - 1)
+        snow_depth = 2
         for y in range(ice_top, min(ice_top + snow_depth, 320)):
             blocks.append((y, "snow_block"))
 
@@ -230,9 +221,7 @@ def make_column(x, z, terrain_h, ice_thick, voronoi_edge_val, wind_val,
     if sample_point and not is_sea:
         sdist = _sample_dist(x, z, seed)
         if sdist <= 2:
-            top_y = ice_top + _snow_depth(x, z, seed)
-            top_y = min(top_y, 319)
-            # Place markers: lantern + banner
+            top_y = min(ice_top + 2, 319)
             if sdist == 0:
                 blocks.append((top_y, "sea_lantern"))
             elif sdist <= 1:
