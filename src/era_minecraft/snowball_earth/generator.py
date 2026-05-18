@@ -1,13 +1,15 @@
 """Snowball Earth terrain generator.
 
-7-layer generation pipeline:
-1. Smooth base terrain (low-octave fBm)
-2. Thick ice sheet over land
-3. Sea ice over ocean areas
-4. Voronoi ice cracks (F2-F1) & pressure ridges along cell boundaries
-5. Random polyline crevasses carved into the ice
-6. Wind-aligned snow streaks on the surface
-7. Nunataks (exposed rock), moulins (ice holes), sample collection points
+Generation pipeline:
+1. Smooth base terrain (low bedrock)
+2. Massive ice sheet (150-200 blocks)
+3. Frozen sea with thick sea ice
+4. Voronoi cracks + ice ridges along cell boundaries
+5. Polyline crevasses (realistic ~40m depth)
+6. Snow plain surface
+7. Nunataks (exposed rock peaks)
+8. Glacial U-valleys carved into bedrock
+9. Moraine bands (rock/gravel strips on ice surface)
 """
 
 import numpy as np
@@ -15,44 +17,45 @@ from ..noise import perlin_2d, worley_2d_edge
 from ..utils import coord_hash
 
 # ── 1. Base terrain ──
-TERRAIN_BASE = 85
-TERRAIN_AMPLITUDE = 15       # very gentle: Y 85-100
-TERRAIN_SCALE = 0.001        # huge wavelength
+TERRAIN_BASE = -40
+TERRAIN_AMPLITUDE = 20       # Y -40 to -20
+TERRAIN_SCALE = 0.001
 
 # ── 2. Ice sheet ──
-ICE_SHEET_MIN = 15
-ICE_SHEET_MAX = 40
-ICE_SCALE = 0.002            # slow variation
+ICE_SHEET_MIN = 150
+ICE_SHEET_MAX = 200
+ICE_SCALE = 0.002
 
 # ── 3. Sea ice ──
-FROZEN_SEA_LEVEL = 90
-SEA_ICE_THICKNESS = 6
+FROZEN_SEA_LEVEL = -30
+SEA_ICE_THICKNESS = 150
 
-# ── 4. Voronoi cracks ──
-VORONOI_FREQ = 0.006          # cell size ~167 blocks (wider spacing)
-CRACK_THRESHOLD = 0.05        # narrower crack width
+# ── 4. Voronoi cracks & ridges ──
+VORONOI_FREQ = 0.006
+CRACK_THRESHOLD = 0.015      # narrow cracks (2-4 blocks wide)
+RIDGE_BAND = 0.05            # ridge surface texture band
 
 # ── 5. Polyline crevasses ──
 NUM_CREVASSES = 4
-CREVASSE_HALF_WIDTH = 2
-CREVASSE_DEPTH = 8
-CREVASSE_POINTS = 5           # vertices per polyline
+CREVASSE_HALF_WIDTH = 1
+CREVASSE_DEPTH = 35
+CREVASSE_TAPER_RADIUS = 2    # very steep walls
+CREVASSE_POINTS = 5
 CREVASSE_SEGMENT_LEN = 100
 
-# ── 6. Wind streaks ──
-WIND_ANGLE = 0.3              # radians from +X axis
-WIND_SCALE = 0.025
-WIND_THRESHOLD = 0.55         # above this -> extra snow layer
+# ── 7. Nunataks ──
+NUNATAK_CELL = 200
+NUNATAK_CHANCE = 6           # percent of cells
+NUNATAK_RADIUS = 8
 
-# ── 7. Nunataks, moulins, sample points ──
-NUNATAK_CELL = 120            # grid cell for nunatak check
-NUNATAK_CHANCE = 8            # percent of cells
-NUNATAK_RADIUS = 6
-MOULIN_CELL = 60
-MOULIN_CHANCE = 3
-MOULIN_RADIUS = 2
-SAMPLE_CELL = 200
-SAMPLE_CHANCE = 5
+# ── 8. Glacial valleys ──
+VALLEY_SCALE = 0.003
+VALLEY_THRESHOLD = 0.6       # noise > this = valley zone
+VALLEY_DEPTH = 30            # extra depth carved into bedrock
+
+# ── 9. Moraine bands ──
+MORAINE_SCALE = 0.015
+MORAINE_THRESHOLD = 0.7      # directional noise > this = moraine
 
 
 def generate_heightmaps(size, seed):
@@ -60,46 +63,50 @@ def generate_heightmaps(size, seed):
     half = size // 2
     coords = np.arange(-half, half, dtype=np.float64)
 
-    # 1. Smooth base terrain — single octave, no high-frequency detail
+    # 1. Smooth base terrain
     terrain_h = perlin_2d(
         coords * TERRAIN_SCALE, coords * TERRAIN_SCALE,
         seed=seed, octaves=1,
     )
     terrain_h = (terrain_h * 0.5 + 0.5) * TERRAIN_AMPLITUDE + TERRAIN_BASE
 
-    # 2. Ice thickness variation — single octave
+    # 2. Ice thickness variation
     ice_noise = perlin_2d(
         coords * ICE_SCALE, coords * ICE_SCALE,
         seed=seed + 100, octaves=1,
     )
     ice_thickness = (ice_noise * 0.5 + 0.5) * (ICE_SHEET_MAX - ICE_SHEET_MIN) + ICE_SHEET_MIN
 
-    # 4. Voronoi edge distance (F2-F1)
+    # 4. Voronoi edge distance
     voronoi_edge = worley_2d_edge(coords, coords, seed=seed + 300, frequency=VORONOI_FREQ)
 
-    # 6. Wind streak noise (directional Perlin)
-    cx = np.cos(WIND_ANGLE)
-    cz = np.sin(WIND_ANGLE)
-    wind_coords_x = coords * WIND_SCALE * cx
-    wind_coords_z = coords * WIND_SCALE * cz * 3.0  # stretch perpendicular to wind
-    wind_noise = perlin_2d(
-        wind_coords_x, wind_coords_z,
-        seed=seed + 400, octaves=2, persistence=0.5, lacunarity=2.0,
+    # 8. Glacial valley noise (elongated in one direction)
+    valley_noise = perlin_2d(
+        coords * VALLEY_SCALE * 0.5,   # stretched along x
+        coords * VALLEY_SCALE * 2.0,   # compressed along z -> linear valleys
+        seed=seed + 600, octaves=1,
     )
 
-    # 5. Pre-generate polyline crevasses as a set of line segments
+    # 9. Moraine noise (directional bands)
+    moraine_noise = perlin_2d(
+        coords * MORAINE_SCALE * 0.3,  # stretched -> long parallel bands
+        coords * MORAINE_SCALE * 3.0,
+        seed=seed + 700, octaves=1,
+    )
+
+    # 5. Polyline crevasses
     crevasse_segments = _generate_crevasse_polylines(size, seed + 500)
 
-    return terrain_h, ice_thickness, voronoi_edge, wind_noise, crevasse_segments
+    return (terrain_h, ice_thickness, voronoi_edge,
+            valley_noise, moraine_noise, crevasse_segments)
 
 
 def _generate_crevasse_polylines(size, seed):
-    """Generate random polyline crevasses. Returns list of (x1,z1,x2,z2) segments."""
+    """Generate random polyline crevasses."""
     half = size // 2
     rng = np.random.default_rng(seed)
     segments = []
     for _ in range(NUM_CREVASSES):
-        # Random start point
         px = rng.uniform(-half * 0.8, half * 0.8)
         pz = rng.uniform(-half * 0.8, half * 0.8)
         angle = rng.uniform(0, 2 * np.pi)
@@ -114,7 +121,6 @@ def _generate_crevasse_polylines(size, seed):
 
 
 def _point_to_segment_dist_sq(px, pz, x1, z1, x2, z2):
-    """Squared distance from point (px,pz) to segment (x1,z1)-(x2,z2)."""
     dx = x2 - x1
     dz = z2 - z1
     len_sq = dx * dx + dz * dz
@@ -126,25 +132,24 @@ def _point_to_segment_dist_sq(px, pz, x1, z1, x2, z2):
     return (px - proj_x) ** 2 + (pz - proj_z) ** 2
 
 
-def make_column(x, z, terrain_h, ice_thick, voronoi_edge_val, wind_val,
-                crevasse_segments, seed):
-    """Build block list for a single (x, z) column.
-
-    All height arithmetic uses float; only one round() at the end to avoid
-    cumulative rounding jitter between adjacent columns.
-    """
-    # Keep as float until final conversion
+def make_column(x, z, terrain_h, ice_thick, voronoi_edge_val,
+                valley_val, moraine_val, crevasse_segments, seed):
+    """Build block list for a single (x, z) column."""
     terrain_f = float(terrain_h)
     ice_f = float(ice_thick)
+
+    # ── 8. Glacial valley: carve bedrock deeper ──
+    if valley_val > VALLEY_THRESHOLD:
+        valley_factor = (valley_val - VALLEY_THRESHOLD) / (1.0 - VALLEY_THRESHOLD)
+        terrain_f -= VALLEY_DEPTH * valley_factor
+
     terrain_height = round(terrain_f)
     is_sea = terrain_f < FROZEN_SEA_LEVEL
 
     blocks = []
 
-    # ── 7. Check special features ──
+    # ── 7. Nunatak check ──
     nunatak = _is_nunatak(x, z, seed)
-    moulin = _is_moulin(x, z, seed)
-    sample_point = _is_sample_point(x, z, seed)
 
     # ── Bedrock ──
     for y in range(-64, -62):
@@ -154,78 +159,83 @@ def make_column(x, z, terrain_h, ice_thick, voronoi_edge_val, wind_val,
     for y in range(-62, terrain_height):
         blocks.append((y, _rock_block(x, y, z)))
 
-    # ── 7a. Nunatak: exposed rock peak, no ice ──
+    # ── 7. Nunatak: exposed rock peak piercing through ice ──
     if nunatak and not is_sea:
         dist = _nunatak_dist(x, z, seed)
         if dist <= NUNATAK_RADIUS:
-            peak_extra = max(0, round((NUNATAK_RADIUS - dist) * 2.5))
-            for y in range(terrain_height, min(terrain_height + peak_extra, 320)):
+            # Rock peak rises above ice surface
+            ice_surface = round(terrain_f + ice_f)
+            peak_extra = max(0, round((NUNATAK_RADIUS - dist) * 3.0))
+            peak_top = min(ice_surface + peak_extra, 319)
+            for y in range(terrain_height, peak_top):
                 blocks.append((y, _nunatak_block(x, y, z)))
-            if peak_extra > 0 and coord_hash(x, 0, z, seed + 770) % 100 < 40:
-                blocks.append((min(terrain_height + peak_extra, 319), "gravel"))
+            if coord_hash(x, 0, z, seed + 770) % 100 < 40:
+                blocks.append((peak_top, "gravel"))
             return blocks
 
-    # ── 3. Sea: water + sea ice ──
+    # ── 2+3. Ice sheet (unified: land and sea use same ice_top) ──
     if is_sea:
         for y in range(terrain_height, FROZEN_SEA_LEVEL):
             blocks.append((y, "water"))
         ice_bottom_f = float(FROZEN_SEA_LEVEL)
-        ice_top_f = ice_bottom_f + SEA_ICE_THICKNESS
     else:
-        # ── 2. Land ice sheet — single float sum ──
         ice_bottom_f = terrain_f
-        ice_top_f = terrain_f + ice_f
+    # Ice top is always terrain + ice_thickness (continuous across sea/land)
+    ice_top_f = terrain_f + ice_f
 
-    # ── 4. Voronoi: cracks only (no ridges) ──
+    # ── 4. Voronoi: cracks with cosine taper ──
     if voronoi_edge_val < CRACK_THRESHOLD:
-        crack_depth = (1.0 - voronoi_edge_val / CRACK_THRESHOLD) * CREVASSE_DEPTH
+        t = voronoi_edge_val / CRACK_THRESHOLD  # 0=center, 1=edge
+        crack_depth = CREVASSE_DEPTH * 0.5 * (1.0 + np.cos(np.pi * t))
         ice_top_f = max(ice_bottom_f + 1.0, ice_top_f - crack_depth)
 
-    # ── 5. Polyline crevasses (float) ──
+    # ── 5. Polyline crevasses ──
     crevasse_cut = 0.0
-    hw_sq = CREVASSE_HALF_WIDTH ** 2
+    taper_r_sq = CREVASSE_TAPER_RADIUS ** 2
     for seg in crevasse_segments:
         d_sq = _point_to_segment_dist_sq(float(x), float(z), *seg)
-        if d_sq < hw_sq * 9:
-            closeness = 1.0 - (d_sq / (hw_sq * 9)) ** 0.5
-            crevasse_cut = max(crevasse_cut, closeness * CREVASSE_DEPTH)
+        if d_sq < taper_r_sq:
+            dist = d_sq ** 0.5
+            # Smooth cosine taper: full depth at center, zero at taper radius
+            t = dist / CREVASSE_TAPER_RADIUS
+            cut = CREVASSE_DEPTH * 0.5 * (1.0 + np.cos(np.pi * t))
+            crevasse_cut = max(crevasse_cut, cut)
     if crevasse_cut > 0:
         ice_top_f = max(ice_bottom_f + 1.0, ice_top_f - crevasse_cut)
 
-    # ── Single round: float → int ──
+    # ── Single round ──
     ice_bottom = round(ice_bottom_f) if is_sea else terrain_height
     ice_top = min(round(ice_top_f), 319)
-
-    # ── 7b. Moulin: vertical hole through ice ──
-    if moulin:
-        mdist = _moulin_dist(x, z, seed)
-        if mdist <= MOULIN_RADIUS:
-            if mdist == MOULIN_RADIUS:
-                for y in range(ice_bottom, ice_top):
-                    blocks.append((y, "blue_ice"))
-            return blocks
 
     # ── Place ice blocks ──
     for y in range(ice_bottom, ice_top):
         blocks.append((y, _ice_block(y, ice_bottom, ice_top)))
 
-    # ── 6. Snow cap (uniform) ──
+    # ── 6. Snow surface ──
     is_crack = voronoi_edge_val < CRACK_THRESHOLD
+    is_ridge = CRACK_THRESHOLD <= voronoi_edge_val < RIDGE_BAND
     is_deep_crevasse = crevasse_cut > CREVASSE_DEPTH / 2
-    if not is_crack and not is_deep_crevasse:
-        snow_depth = 2
-        for y in range(ice_top, min(ice_top + snow_depth, 320)):
-            blocks.append((y, "snow_block"))
-
-    # ── 7c. Sample collection point ──
-    if sample_point and not is_sea:
-        sdist = _sample_dist(x, z, seed)
-        if sdist <= 2:
-            top_y = min(ice_top + 2, 319)
-            if sdist == 0:
-                blocks.append((top_y, "sea_lantern"))
-            elif sdist <= 1:
-                blocks.append((top_y, "cyan_stained_glass"))
+    if is_ridge and not is_deep_crevasse:
+        # Ridge: surface texture only (packed_ice/blue_ice), no height change
+        h = coord_hash(x, 0, z, seed + 450)
+        blocks.append((min(ice_top, 319), "packed_ice" if h % 100 < 60 else "blue_ice"))
+    elif not is_crack and not is_deep_crevasse:
+        # ── 9. Moraine: gravel/cobblestone bands on ice surface ──
+        if moraine_val > MORAINE_THRESHOLD:
+            moraine_factor = (moraine_val - MORAINE_THRESHOLD) / (1.0 - MORAINE_THRESHOLD)
+            h = coord_hash(x, 0, z, seed + 800)
+            if moraine_factor > 0.5:
+                # Dense moraine: gravel + cobblestone
+                blocks.append((min(ice_top, 319), "gravel" if h % 100 < 60 else "cobblestone"))
+            else:
+                # Sparse moraine: occasional gravel on snow
+                blocks.append((min(ice_top, 319), "snow_block"))
+                if h % 100 < 30:
+                    blocks.append((min(ice_top + 1, 319), "gravel"))
+        else:
+            # Plain snow
+            blocks.append((min(ice_top, 319), "snow_block"))
+            blocks.append((min(ice_top + 1, 319), "snow_block"))
 
     return blocks
 
@@ -233,25 +243,15 @@ def make_column(x, z, terrain_h, ice_thick, voronoi_edge_val, wind_val,
 # ── Rock blocks ──
 
 def _rock_block(x, y, z):
-    if y < 20:
+    if y < -50:
         h = coord_hash(x, y, z, seed=10)
         return "deepslate" if h % 100 < 75 else "tuff"
-    elif y < 50:
+    else:
         h = coord_hash(x, y, z, seed=15)
         return "deepslate" if h % 100 < 40 else "blackstone"
-    else:
-        diagonal = (x + 2 * y + z) % 14
-        if diagonal < 5:
-            return "blackstone"
-        elif diagonal < 8:
-            return "basalt"
-        else:
-            h = coord_hash(x, y, z, seed=20)
-            return "basalt" if h % 100 < 55 else "blackstone"
 
 
 def _nunatak_block(x, y, z):
-    """Exposed rock at nunataks — dark, weathered stone."""
     h = coord_hash(x, y, z, seed=750)
     if h % 100 < 50:
         return "blackstone"
@@ -268,23 +268,17 @@ def _ice_block(y, ice_bottom, ice_top):
     if thickness <= 0:
         return "ice"
     progress = (y - ice_bottom) / thickness
-    if progress < 0.5:
+    if progress < 0.6:
         return "blue_ice"
-    elif progress < 0.8:
+    elif progress < 0.85:
         return "packed_ice"
     else:
         return "ice"
 
 
-def _snow_depth(x, z, seed):
-    h = coord_hash(x, 0, z, seed + 300)
-    return (h % 3) + 1
-
-
-# ── Feature placement helpers ──
+# ── Feature placement ──
 
 def _grid_feature(x, z, seed, cell_size, chance_pct):
-    """Check if (x,z) is in a cell that has a feature."""
     cx = x // cell_size
     cz = z // cell_size
     h = coord_hash(cx, 0, cz, seed)
@@ -292,12 +286,10 @@ def _grid_feature(x, z, seed, cell_size, chance_pct):
 
 
 def _grid_center(x, z, seed, cell_size):
-    """Return distance from (x,z) to the center of its grid cell feature point."""
     cx = x // cell_size
     cz = z // cell_size
     h = coord_hash(cx, 0, cz, seed + 1)
     h2 = coord_hash(cx, 0, cz, seed + 2)
-    # Feature point within cell
     fx = cx * cell_size + (h % cell_size)
     fz = cz * cell_size + (h2 % cell_size)
     return int(((x - fx) ** 2 + (z - fz) ** 2) ** 0.5)
@@ -308,15 +300,3 @@ def _is_nunatak(x, z, seed):
 
 def _nunatak_dist(x, z, seed):
     return _grid_center(x, z, seed + 700, NUNATAK_CELL)
-
-def _is_moulin(x, z, seed):
-    return _grid_feature(x, z, seed + 710, MOULIN_CELL, MOULIN_CHANCE)
-
-def _moulin_dist(x, z, seed):
-    return _grid_center(x, z, seed + 710, MOULIN_CELL)
-
-def _is_sample_point(x, z, seed):
-    return _grid_feature(x, z, seed + 720, SAMPLE_CELL, SAMPLE_CHANCE)
-
-def _sample_dist(x, z, seed):
-    return _grid_center(x, z, seed + 720, SAMPLE_CELL)

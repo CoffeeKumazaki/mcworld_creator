@@ -20,7 +20,8 @@ def main():
     print(f"Snowball Earth: size={args.size}, seed={args.seed}")
     print("Generating heightmaps...")
 
-    terrain_h, ice_thickness, voronoi_edge, wind_noise, crevasse_segments = \
+    (terrain_h, ice_thickness, voronoi_edge,
+     valley_noise, moraine_noise, crevasse_segments) = \
         generate_heightmaps(args.size, args.seed)
     half = args.size // 2
 
@@ -32,7 +33,8 @@ def main():
             terrain_h[iz, ix],
             ice_thickness[iz, ix],
             voronoi_edge[iz, ix],
-            wind_noise[iz, ix],
+            valley_noise[iz, ix],
+            moraine_noise[iz, ix],
             crevasse_segments,
             args.seed,
         )
