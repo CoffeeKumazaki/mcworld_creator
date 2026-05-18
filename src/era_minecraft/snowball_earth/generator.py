@@ -183,59 +183,57 @@ def make_column(x, z, terrain_h, ice_thick, voronoi_edge_val,
     # Ice top is always terrain + ice_thickness (continuous across sea/land)
     ice_top_f = terrain_f + ice_f
 
-    # ── 4. Voronoi: cracks with cosine taper ──
+    # ── Compute crevasse depth (vertical slit from surface down) ──
+    crevasse_depth = 0.0
+
+    # 4. Voronoi cracks
     if voronoi_edge_val < CRACK_THRESHOLD:
         t = voronoi_edge_val / CRACK_THRESHOLD  # 0=center, 1=edge
-        crack_depth = CREVASSE_DEPTH * 0.5 * (1.0 + np.cos(np.pi * t))
-        ice_top_f = max(ice_bottom_f + 1.0, ice_top_f - crack_depth)
+        crevasse_depth = max(crevasse_depth, CREVASSE_DEPTH * (1.0 - t))
 
-    # ── 5. Polyline crevasses ──
-    crevasse_cut = 0.0
+    # 5. Polyline crevasses
     taper_r_sq = CREVASSE_TAPER_RADIUS ** 2
     for seg in crevasse_segments:
         d_sq = _point_to_segment_dist_sq(float(x), float(z), *seg)
         if d_sq < taper_r_sq:
             dist = d_sq ** 0.5
-            # Smooth cosine taper: full depth at center, zero at taper radius
             t = dist / CREVASSE_TAPER_RADIUS
-            cut = CREVASSE_DEPTH * 0.5 * (1.0 + np.cos(np.pi * t))
-            crevasse_cut = max(crevasse_cut, cut)
-    if crevasse_cut > 0:
-        ice_top_f = max(ice_bottom_f + 1.0, ice_top_f - crevasse_cut)
+            crevasse_depth = max(crevasse_depth, CREVASSE_DEPTH * (1.0 - t))
 
     # ── Single round ──
     ice_bottom = round(ice_bottom_f) if is_sea else terrain_height
     ice_top = min(round(ice_top_f), 319)
 
-    # ── Place ice blocks ──
+    # ── Place ice blocks, with vertical slit carved from top ──
+    crevasse_bottom = max(ice_bottom, ice_top - round(crevasse_depth))
+    has_crevasse = crevasse_depth > 1.0
+
     for y in range(ice_bottom, ice_top):
-        blocks.append((y, _ice_block(y, ice_bottom, ice_top)))
+        if has_crevasse and y >= crevasse_bottom:
+            pass  # air: don't place block (vertical slit)
+        else:
+            blocks.append((y, _ice_block(y, ice_bottom, ice_top)))
 
     # ── 6. Snow surface ──
-    is_crack = voronoi_edge_val < CRACK_THRESHOLD
     is_ridge = CRACK_THRESHOLD <= voronoi_edge_val < RIDGE_BAND
-    is_deep_crevasse = crevasse_cut > CREVASSE_DEPTH / 2
-    if is_ridge and not is_deep_crevasse:
-        # Ridge: surface texture only (packed_ice/blue_ice), no height change
+    if has_crevasse:
+        pass  # no snow on open crevasse
+    elif is_ridge:
+        # Ridge: surface texture only
         h = coord_hash(x, 0, z, seed + 450)
         blocks.append((min(ice_top, 319), "packed_ice" if h % 100 < 60 else "blue_ice"))
-    elif not is_crack and not is_deep_crevasse:
-        # ── 9. Moraine: gravel/cobblestone bands on ice surface ──
-        if moraine_val > MORAINE_THRESHOLD:
-            moraine_factor = (moraine_val - MORAINE_THRESHOLD) / (1.0 - MORAINE_THRESHOLD)
-            h = coord_hash(x, 0, z, seed + 800)
-            if moraine_factor > 0.5:
-                # Dense moraine: gravel + cobblestone
-                blocks.append((min(ice_top, 319), "gravel" if h % 100 < 60 else "cobblestone"))
-            else:
-                # Sparse moraine: occasional gravel on snow
-                blocks.append((min(ice_top, 319), "snow_block"))
-                if h % 100 < 30:
-                    blocks.append((min(ice_top + 1, 319), "gravel"))
+    elif moraine_val > MORAINE_THRESHOLD:
+        moraine_factor = (moraine_val - MORAINE_THRESHOLD) / (1.0 - MORAINE_THRESHOLD)
+        h = coord_hash(x, 0, z, seed + 800)
+        if moraine_factor > 0.5:
+            blocks.append((min(ice_top, 319), "gravel" if h % 100 < 60 else "cobblestone"))
         else:
-            # Plain snow
             blocks.append((min(ice_top, 319), "snow_block"))
-            blocks.append((min(ice_top + 1, 319), "snow_block"))
+            if h % 100 < 30:
+                blocks.append((min(ice_top + 1, 319), "gravel"))
+    else:
+        blocks.append((min(ice_top, 319), "snow_block"))
+        blocks.append((min(ice_top + 1, 319), "snow_block"))
 
     return blocks
 
