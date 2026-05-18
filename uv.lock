@@ -974,7 +974,7 @@ wheels = [
 [[package]]
 name = "mcworld-creator"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "frozendict" },
     { name = "lxml" },
