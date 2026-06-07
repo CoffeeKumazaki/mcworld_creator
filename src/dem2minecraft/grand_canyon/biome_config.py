@@ -54,9 +54,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="horizontal_band",
         fossils=[
-            FossilConfig("三葉虫", "dead_tube_coral_block", 3, 5, 35),
-            FossilConfig("アノマロカリス", "dead_brain_coral_block", 2, 2, 30),
-            FossilConfig("ハルキゲニア", "dead_bubble_coral_block", 2, 3, 30),
+            FossilConfig("tapeats_fossil", "dead_tube_coral_block", 3, 10, 33),
         ],
     ),
     LayerConfig(
@@ -68,9 +66,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="irregular",
         fossils=[
-            FossilConfig("三葉虫", "dead_tube_coral_block", 3, 5, 35),
-            FossilConfig("アノマロカリス", "dead_brain_coral_block", 2, 2, 30),
-            FossilConfig("ハルキゲニア", "dead_bubble_coral_block", 2, 3, 30),
+            FossilConfig("bright_angel_fossil", "dead_brain_coral_block", 3, 10, 33),
         ],
     ),
     LayerConfig(
@@ -82,9 +78,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="default",
         fossils=[
-            FossilConfig("三葉虫", "dead_tube_coral_block", 3, 5, 35),
-            FossilConfig("アノマロカリス", "dead_brain_coral_block", 2, 2, 30),
-            FossilConfig("ハルキゲニア", "dead_bubble_coral_block", 2, 3, 30),
+            FossilConfig("muav_fossil", "dead_bubble_coral_block", 3, 10, 33),
         ],
     ),
     LayerConfig(
@@ -108,10 +102,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="default",
         fossils=[
-            FossilConfig("プラコダーム", "dead_fire_coral_block", 3, 2, 30),
-            FossilConfig("ボスリオレピス", "dead_horn_coral_block", 2, 2, 30),
-            FossilConfig("サンゴ", "tube_coral_block", 4, 5, 45),
-            FossilConfig("ウミユリ", "horn_coral_block", 3, 4, 40),
+            FossilConfig("redwall_fossil", "dead_fire_coral_block", 3, 12, 42),
         ],
     ),
     LayerConfig(
@@ -123,9 +114,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="horizontal_band",
         fossils=[
-            FossilConfig("オウムガイ", "brain_coral_block", 3, 3, 35),
-            FossilConfig("巻貝", "bubble_coral_block", 3, 4, 35),
-            FossilConfig("二枚貝", "fire_coral_block", 4, 5, 40),
+            FossilConfig("supai_fossil", "dead_horn_coral_block", 3, 12, 37),
         ],
     ),
     LayerConfig(
@@ -137,11 +126,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="irregular",
         fossils=[
-            FossilConfig("メガネウラ", "bone_block", 2, 1, 25),
-            FossilConfig("サソリ", "sea_lantern", 2, 2, 25),
-            FossilConfig("クモ", "prismarine", 2, 2, 25),
-            FossilConfig("エリオプス", "dark_prismarine", 3, 1, 30),
-            FossilConfig("ディメトロドン", "prismarine_bricks", 3, 1, 25),
+            FossilConfig("hermit_fossil", "tube_coral_block", 2, 6, 30),
         ],
     ),
     LayerConfig(
@@ -153,11 +138,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="horizontal_band",
         fossils=[
-            FossilConfig("メガネウラ", "bone_block", 2, 1, 25),
-            FossilConfig("サソリ", "sea_lantern", 2, 2, 25),
-            FossilConfig("クモ", "prismarine", 2, 2, 25),
-            FossilConfig("エリオプス", "dark_prismarine", 3, 1, 30),
-            FossilConfig("ディメトロドン", "prismarine_bricks", 3, 1, 25),
+            FossilConfig("coconino_fossil", "brain_coral_block", 2, 6, 30),
         ],
     ),
     LayerConfig(
@@ -169,11 +150,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="default",
         fossils=[
-            FossilConfig("メガネウラ", "bone_block", 2, 1, 25),
-            FossilConfig("サソリ", "sea_lantern", 2, 2, 25),
-            FossilConfig("クモ", "prismarine", 2, 2, 25),
-            FossilConfig("エリオプス", "dark_prismarine", 3, 1, 30),
-            FossilConfig("ディメトロドン", "prismarine_bricks", 3, 1, 25),
+            FossilConfig("toroweap_fossil", "bubble_coral_block", 2, 6, 30),
         ],
     ),
     LayerConfig(
@@ -185,11 +162,7 @@ CANYON_LAYERS_CONFIG = [
         main_pct=100, sub_pct=0, accent_pct=0,
         pattern="default",
         fossils=[
-            FossilConfig("メガネウラ", "bone_block", 2, 1, 25),
-            FossilConfig("サソリ", "sea_lantern", 2, 2, 25),
-            FossilConfig("クモ", "prismarine", 2, 2, 25),
-            FossilConfig("エリオプス", "dark_prismarine", 3, 1, 30),
-            FossilConfig("ディメトロドン", "prismarine_bricks", 3, 1, 25),
+            FossilConfig("kaibab_fossil", "fire_coral_block", 2, 6, 30),
         ],
     ),
 ]
