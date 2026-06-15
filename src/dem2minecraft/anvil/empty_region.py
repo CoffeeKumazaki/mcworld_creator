@@ -7,6 +7,7 @@ from .biome import Biome
 from .errors import OutOfBoundsCoordinates
 from io import BytesIO
 from nbt import nbt
+from . import world_height
 import zlib
 import math
 
@@ -26,12 +27,15 @@ class EmptyRegion:
     x: :class:`int`
     z: :class:`int`
     """
-    __slots__ = ('chunks', 'x', 'z')
+    __slots__ = ('chunks', 'x', 'z', '_min_y', '_max_y')
     def __init__(self, x: int, z: int):
         # Create a 1d list for the 32x32 chunks
         self.chunks: List[EmptyChunk] = [None] * 1024
         self.x = x
         self.z = z
+        # Snapshot the active height limits at construction (see EmptyChunk)
+        self._min_y = world_height.WORLD_MIN_Y
+        self._max_y = world_height.WORLD_MAX_Y
 
     def inside(self, x: int, y: int, z: int, chunk: bool=False) -> bool:
         """
@@ -47,7 +51,7 @@ class EmptyRegion:
         factor = 32 if chunk else 512
         rx = x // factor
         rz = z // factor
-        return not (rx != self.x or rz != self.z or y not in range(-64, 320))
+        return not (rx != self.x or rz != self.z or y not in range(self._min_y, self._max_y + 1))
 
     def get_chunk(self, x: int, z: int) -> EmptyChunk:
         """

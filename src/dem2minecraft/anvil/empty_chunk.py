@@ -5,6 +5,7 @@ from .empty_section import EmptySection
 from .errors import OutOfBoundsCoordinates, EmptySectionAlreadyExists
 from nbt import nbt
 from .legacy import LEGACY_BIOMES_ID_MAP
+from . import world_height
 
 
 def _get_legacy_biome_id(biome: Biome) -> int:
@@ -29,11 +30,16 @@ class EmptyChunk:
     version: :class:`int`
         Chunk's DataVersion
     """
-    __slots__ = ('x', 'z', 'sections', 'biome', 'version')
+    __slots__ = ('x', 'z', 'sections', 'biome', 'version', '_min_y', '_max_y', '_offset')
     def __init__(self, x: int, z: int):
         self.x = x
         self.z = z
-        self.sections: List[EmptySection] = [None]*24
+        # Snapshot the active height limits so later set_world_height() calls
+        # cannot desync this chunk's section array from its coordinate checks.
+        self._min_y = world_height.WORLD_MIN_Y
+        self._max_y = world_height.WORLD_MAX_Y
+        self._offset = world_height.SECTION_OFFSET
+        self.sections: List[EmptySection] = [None]*world_height.SECTION_COUNT
         self.biome = None
         self.version = 3337
 
@@ -53,9 +59,9 @@ class EmptyChunk:
         anvil.EmptySectionAlreadyExists
             If ``replace`` is ``False`` and section with same Y already exists in this chunk
         """
-        if self.sections[section.y+4] and not replace:
+        if self.sections[section.y+self._offset] and not replace:
             raise EmptySectionAlreadyExists(f'EmptySection (Y={section.y}) already exists in this chunk')
-        self.sections[section.y+4] = section
+        self.sections[section.y+self._offset] = section
 
     def get_block(self, x: int, y: int, z: int) -> Block:
         """
@@ -83,9 +89,9 @@ class EmptyChunk:
             raise OutOfBoundsCoordinates(f'X ({x!r}) must be in range of 0 to 15')
         if z not in range(16):
             raise OutOfBoundsCoordinates(f'Z ({z!r}) must be in range of 0 to 15')
-        if y not in range(-64, 320):
-            raise OutOfBoundsCoordinates(f'Y ({y!r}) must be in range of -64 to 319')
-        section = self.sections[(y // 16) + 4]
+        if y not in range(self._min_y, self._max_y + 1):
+            raise OutOfBoundsCoordinates(f'Y ({y!r}) must be in range of {self._min_y} to {self._max_y}')
+        section = self.sections[(y // 16) + self._offset]
         if section is None:
             return
         return section.get_block(x, y % 16, z)
@@ -110,9 +116,9 @@ class EmptyChunk:
             raise OutOfBoundsCoordinates(f'X ({x!r}) must be in range of 0 to 15')
         if z not in range(16):
             raise OutOfBoundsCoordinates(f'Z ({z!r}) must be in range of 0 to 15')
-        if y not in range(-64, 320):
-            raise OutOfBoundsCoordinates(f'Y ({y!r}) must be in range of -64 to 320')
-        section = self.sections[(y // 16) + 4]
+        if y not in range(self._min_y, self._max_y + 1):
+            raise OutOfBoundsCoordinates(f'Y ({y!r}) must be in range of {self._min_y} to {self._max_y}')
+        section = self.sections[(y // 16) + self._offset]
         if section is None:
             section = EmptySection(y // 16)
             self.add_section(section)

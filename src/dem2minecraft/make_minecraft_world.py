@@ -1,10 +1,12 @@
 import os
 import re
+import json
 import math
 import rasterio
 import numpy as np
 import pandas as pd
 from scipy.ndimage import zoom
+from tqdm import tqdm
 
 from grand_canyon.biome_config import CANYON_LAYERS_CONFIG, LayerConfig, FossilConfig
 
@@ -251,7 +253,7 @@ tall_grass_u = anvil.Block("minecraft", "tall_grass", properties={"half": "upper
 def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
                canyon_layer_map=None, canyon_layer_thicknesses=None):
 
-    height_limit = 319
+    height_limit = anvil.world_height.WORLD_MAX_Y
     height = np.clip(y, -64, height_limit)
     height = int(height)
 
@@ -321,7 +323,61 @@ def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
             region.set_block(grass, x, height, z)
     
 
-def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=None, biome=None, water_level=None):
+def write_extended_height_datapack(output_folder, min_y, height, logical_height, pack_format=12):
+    """Write a datapack that overrides ``minecraft:overworld`` with extended height.
+
+    Creates ``<output>/datapacks/extended_height/`` with a ``pack.mcmeta`` and a
+    ``data/minecraft/dimension_type/overworld.json`` carrying the raised
+    ``min_y``/``height``/``logical_height``. The world must be created with this
+    datapack enabled for Minecraft to accept blocks above the vanilla ceiling.
+    """
+    base = os.path.join(output_folder, "datapacks", "extended_height")
+    dim_dir = os.path.join(base, "data", "minecraft", "dimension_type")
+    os.makedirs(dim_dir, exist_ok=True)
+
+    mcmeta = {
+        "pack": {
+            "pack_format": pack_format,
+            "description": "Extended world height (1:1 terrain)",
+        }
+    }
+    with open(os.path.join(base, "pack.mcmeta"), "w") as f:
+        json.dump(mcmeta, f, indent=2)
+
+    # Vanilla overworld dimension_type with only the height fields raised.
+    overworld = {
+        "ultrawarm": False,
+        "natural": True,
+        "coordinate_scale": 1.0,
+        "has_skylight": True,
+        "has_ceiling": False,
+        "ambient_light": 0.0,
+        "monster_spawn_light_level": {
+            "type": "minecraft:uniform",
+            "value": {"min_inclusive": 0, "max_inclusive": 7},
+        },
+        "monster_spawn_block_light_limit": 0,
+        "piglin_safe": False,
+        "bed_works": True,
+        "respawn_anchor_works": False,
+        "has_raids": True,
+        "logical_height": logical_height,
+        "min_y": min_y,
+        "height": height,
+        "infiniburn": "#minecraft:infiniburn_overworld",
+        "effects": "minecraft:overworld",
+    }
+    with open(os.path.join(dim_dir, "overworld.json"), "w") as f:
+        json.dump(overworld, f, indent=2)
+
+    print(f"Wrote extended-height datapack: {base}")
+    print("  To use: create a NEW world with this datapack enabled "
+          "(World > Data Packs, or place the 'datapacks' folder in the world before first load),")
+    print("  then copy the generated 'region' folder into that world.")
+
+
+def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=None, biome=None, water_level=None,
+              extend_height=False, max_height=None, datapack_format=12, output_folder=None, resume=False):
 
     # 0より大きい値の最小値を取得
     min_value = df[df['y'] > 0]['y'].min()
@@ -339,6 +395,43 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
             scale = 1.0
     else:
         print(f"Manual scale: {scale}")
+
+    # 地形の最高 Y（マッピング後）。バニラ上限(319)を超えるなら高さ拡張が必要
+    required_max_y = int(math.ceil((max_value - min_value) * scale - 60))
+    min_y = anvil.world_height.WORLD_MIN_Y
+
+    if extend_height:
+        # 拡張高さの region はバニラでは読めない。datapack を必ず同梱するため出力先は必須。
+        if output_folder is None:
+            raise ValueError("extend_height requires output_folder so the matching "
+                             "dimension datapack can be written alongside the regions")
+        # 高さ制限撤廃モード: 既定は構造的上限(2031)まで確保し、地形上に建築余裕を残す
+        requested_max_y = anvil.world_height.ABSOLUTE_MAX_Y if max_height is None else int(max_height)
+        if requested_max_y < required_max_y:
+            raise ValueError(
+                f"--max-height ({requested_max_y}) is below the terrain top Y ({required_max_y}); "
+                "raise --max-height or lower --scale")
+        if requested_max_y > anvil.world_height.ABSOLUTE_MAX_Y:
+            raise ValueError(
+                f"--max-height ({requested_max_y}) exceeds the structural limit "
+                f"{anvil.world_height.ABSOLUTE_MAX_Y}")
+        # datapack の height は 16 の倍数。天井を section 境界へ正規化し、effective ceiling
+        # (min_y+height-1) を writer・ログ・datapack 共通の唯一の上限とする。
+        height = ((requested_max_y - min_y) // 16 + 1) * 16
+        logical_height = height
+        world_max_y = min_y + height - 1
+        anvil.set_world_height(world_max_y)
+        print(f"Extended height ON: floor Y={min_y}, ceiling Y={world_max_y} "
+              f"(datapack height={height}, sections={anvil.world_height.SECTION_COUNT})")
+        print(f"Terrain top ~Y={required_max_y}, build headroom ~{world_max_y - required_max_y} blocks")
+        write_extended_height_datapack(output_folder, min_y, height, logical_height, datapack_format)
+    else:
+        # 通常（バニラ）モード: 直前の拡張実行の状態が同一プロセスに残らないよう毎回リセット
+        anvil.set_world_height(anvil.world_height.VANILLA_MAX_Y)
+        if required_max_y > anvil.world_height.WORLD_MAX_Y:
+            print(f"[WARN] Terrain top Y={required_max_y} exceeds the vanilla limit "
+                  f"{anvil.world_height.WORLD_MAX_Y}; everything above will be clipped flat.")
+            print("       Pass --extend-height to remove the limit, or lower --scale.")
 
     # yが0の行に64を加算
     df['y'] = df['y'].replace(0, min_value)
@@ -389,23 +482,55 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
     water_level_y = None
     if water_level is not None:
         water_level_y = int((water_level - min_value) * scale - 60)
-        water_level_y = int(np.clip(water_level_y, -64, 319))
+        water_level_y = int(np.clip(water_level_y, anvil.world_height.WORLD_MIN_Y, anvil.world_height.WORLD_MAX_Y))
         print(f"Water level: {water_level}m -> MC Y={water_level_y}")
 
     # regionごとにグループ分け
     print("Grouping by region...")
     grouped = df.groupby(["region"])
+    n_regions = df["region"].nunique()
 
-    for _name, group in grouped:
-        # 先頭行をスキップ
-        # group = group.iloc[1:]
+    # 生成設定の manifest。--resume 時に設定が一致しない出力への追記（混在ワールド）を防ぐ。
+    manifest = {
+        "scale": float(scale),
+        "biome": biome,
+        "extend_height": bool(extend_height),
+        "world_max_y": int(anvil.world_height.WORLD_MAX_Y),
+        "water_level": None if water_level is None else float(water_level),
+    }
+    manifest_path = None
+    if output_folder is not None:
+        manifest_path = os.path.join(output_folder, "region", "gen_manifest.json")
+        if resume and os.path.exists(manifest_path):
+            with open(manifest_path) as f:
+                prev = json.load(f)
+            if prev != manifest:
+                raise ValueError(
+                    "--resume parameters differ from the existing output "
+                    f"({prev} != {manifest}); use a fresh --output instead")
+        os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
+        with open(manifest_path, "w") as f:
+            json.dump(manifest, f, indent=2)
+
+    # 各 region は一時ファイルへ書いてから atomic rename で確定（=途中保存・中断耐性）。
+    # --resume 指定時は、確定済みの region をスキップして続きから生成する。
+    progress = tqdm(grouped, total=n_regions, desc="Writing regions", unit="region")
+    skipped = 0
+    for _name, group in progress:
+        region_path = _name[0]
 
         # regionを作成
-        match = re.search(r"r\.(-?\d+)\.(-?\d+)\.mca", _name[0])
+        match = re.search(r"r\.(-?\d+)\.(-?\d+)\.mca", region_path)
         if match:
             rx, ry = match.groups()
             rx = int(rx)
             ry = int(ry)
+
+        progress.set_postfix_str(f"r.{rx}.{ry} cols={len(group)}")
+
+        if resume and os.path.exists(region_path) and os.path.getsize(region_path) > 0:
+            skipped += 1
+            continue
 
         region = anvil.EmptyRegion(rx, ry)
         x = group["x"]
@@ -424,17 +549,22 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
 
             if bh > 0:
                 for i in range(int((bh - y_orig) * scale)):
-                    region.set_block(white_concrete, xi, yi + i, zi)
+                    region.set_if_inside(white_concrete, xi, yi + i, zi)
             elif water > 0:
                 for i in range(3): ## 水深3
-                    region.set_block(water_block, xi, yi - i, zi)
+                    region.set_if_inside(water_block, xi, yi - i, zi)
             elif water_level_y is not None and yi < water_level_y:
                 for wy in range(yi + 1, water_level_y + 1):
-                    if -64 <= wy <= 319:
-                        region.set_block(water_block, xi, wy, zi)
+                    region.set_if_inside(water_block, xi, wy, zi)
 
-        # regionを保存
-        region.save(group.iloc[1]["region"])
+        # 途中保存: 一時ファイルへ書いてから atomic rename。中断しても確定済みregionは破損しない。
+        tmp_path = region_path + ".tmp"
+        region.save(tmp_path)
+        os.replace(tmp_path, region_path)
+
+    progress.close()
+    if resume and skipped:
+        print(f"Resume: skipped {skipped} already-generated regions")
 
 
 if __name__ == "__main__":
@@ -454,6 +584,14 @@ if __name__ == "__main__":
                         help="水面の標高（メートル）。この標高以下の地形に水を充填")
     parser.add_argument("--no-resample", action="store_true",
                         help="1ピクセル=1ブロックのまま（リサンプリングしない）")
+    parser.add_argument("--extend-height", action="store_true",
+                        help="高さ制限を撤廃（カスタムdimension datapackを出力し、最大Y=2031まで生成）")
+    parser.add_argument("--max-height", type=int, default=None,
+                        help="--extend-height時の天井Y（省略時は最大の2031）")
+    parser.add_argument("--datapack-format", type=int, default=12,
+                        help="datapackのpack_format（既定12=MC1.19.4）")
+    parser.add_argument("--resume", action="store_true",
+                        help="既に書き出し済みのregion(.mca)をスキップして続きから生成")
     args = parser.parse_args()
 
     resample = not args.no_resample
@@ -487,4 +625,7 @@ if __name__ == "__main__":
 
     # マップを作成
     df_to_map(df, df_road, df_bldg, df_water, df_tnm,
-              scale=args.scale, biome=args.biome, water_level=args.water_level)
+              scale=args.scale, biome=args.biome, water_level=args.water_level,
+              extend_height=args.extend_height, max_height=args.max_height,
+              datapack_format=args.datapack_format, output_folder=output_folder,
+              resume=args.resume)
