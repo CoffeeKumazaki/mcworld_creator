@@ -89,6 +89,10 @@ class EmptyRegion:
         """
         if not self.inside(chunk.x, 0, chunk.z, chunk=True):
             raise OutOfBoundsCoordinates(f'Chunk ({chunk.x}, {chunk.z}) is not inside this region')
+        if chunk._min_y != self._min_y or chunk._max_y != self._max_y:
+            raise OutOfBoundsCoordinates(
+                f'Chunk height [{chunk._min_y}, {chunk._max_y}] is incompatible with '
+                f'region height [{self._min_y}, {self._max_y}]')
         self.chunks[chunk.z % 32 * 32 + chunk.x % 32] = chunk
 
     def add_section(self, section: EmptySection, x: int, z: int, replace: bool=True):
@@ -114,7 +118,7 @@ class EmptyRegion:
             raise OutOfBoundsCoordinates(f'Chunk ({x}, {z}) is not inside this region')
         chunk = self.chunks[z % 32 * 32 + x % 32]
         if chunk is None:
-            chunk = EmptyChunk(x, z)
+            chunk = EmptyChunk(x, z, self._min_y, self._max_y)
             self.add_chunk(chunk)
         chunk.add_section(section, replace)
 
@@ -141,7 +145,7 @@ class EmptyRegion:
         cz = z // 16
         chunk = self.get_chunk(cx, cz)
         if chunk is None:
-            chunk = EmptyChunk(cx, cz)
+            chunk = EmptyChunk(cx, cz, self._min_y, self._max_y)
             self.add_chunk(chunk)
         chunk.set_block(block, x % 16, y, z % 16)
 
@@ -168,7 +172,7 @@ class EmptyRegion:
         cz = z // 16
         chunk = self.get_chunk(cx, cz)
         if chunk is None:
-            chunk = EmptyChunk(cx, cz)
+            chunk = EmptyChunk(cx, cz, self._min_y, self._max_y)
             self.add_chunk(chunk)
         chunk.set_biome(biome, x % 16, z % 16)
 

@@ -31,15 +31,18 @@ class EmptyChunk:
         Chunk's DataVersion
     """
     __slots__ = ('x', 'z', 'sections', 'biome', 'version', '_min_y', '_max_y', '_offset')
-    def __init__(self, x: int, z: int):
+    def __init__(self, x: int, z: int, min_y: int = None, max_y: int = None):
         self.x = x
         self.z = z
-        # Snapshot the active height limits so later set_world_height() calls
-        # cannot desync this chunk's section array from its coordinate checks.
-        self._min_y = world_height.WORLD_MIN_Y
-        self._max_y = world_height.WORLD_MAX_Y
-        self._offset = world_height.SECTION_OFFSET
-        self.sections: List[EmptySection] = [None]*world_height.SECTION_COUNT
+        # Snapshot the height limits so later set_world_height() calls cannot
+        # desync this chunk's section array from its coordinate checks. When
+        # min_y/max_y are given (e.g. by EmptyRegion) all chunks in a region
+        # share one consistent height regardless of the current globals.
+        self._min_y = world_height.WORLD_MIN_Y if min_y is None else min_y
+        self._max_y = world_height.WORLD_MAX_Y if max_y is None else max_y
+        self._offset = -(self._min_y // 16)
+        section_count = (self._max_y // 16) + 1 - (self._min_y // 16)
+        self.sections: List[EmptySection] = [None]*section_count
         self.biome = None
         self.version = 3337
 

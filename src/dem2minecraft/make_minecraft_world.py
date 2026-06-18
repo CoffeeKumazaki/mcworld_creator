@@ -1,5 +1,6 @@
 import os
 import re
+import glob
 import json
 import math
 import rasterio
@@ -323,6 +324,72 @@ def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
             region.set_block(grass, x, height, z)
     
 
+def _atomic_write_json(path, obj):
+    """Write JSON to a temp file then os.replace into place (atomic on same fs)."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(obj, f, indent=2)
+    os.replace(tmp, path)
+
+
+# ---- region build worker (top-level so multiprocessing 'spawn' can pickle it) ----
+# Read-only shared context, populated per worker via Pool initializer (or directly
+# in the serial path). Avoids re-pickling the layer maps for every region.
+_RCTX = {}
+
+
+def _worker_init(ctx):
+    global _RCTX
+    _RCTX = ctx
+    # spawn re-imports this module, resetting WORLD_MAX_Y to the vanilla default,
+    # so every worker process must restore the active ceiling before building.
+    anvil.set_world_height(ctx["active_max_y"])
+
+
+def _build_one_region(task):
+    """Build and atomically save a single region. Returns (status, region_path)."""
+    region_path, rx, ry, cols, resume = task
+
+    if resume and os.path.exists(region_path) and os.path.getsize(region_path) > 0:
+        return ("skipped", region_path)
+
+    ctx = _RCTX
+    min_value = ctx["min_value"]
+    scale = ctx["scale"]
+    biome = ctx["biome"]
+    water_level_y = ctx["water_level_y"]
+    canyon_layer_map = ctx["canyon_layer_map"]
+    canyon_layer_thicknesses = ctx["canyon_layer_thicknesses"]
+
+    region = anvil.EmptyRegion(rx, ry)
+    y = ((cols["y"] - min_value) * scale - 60).astype(int)
+    y_original = cols["y"]
+
+    for xi, yi, zi, road_typei, bh, water, tnm, y_orig in zip(
+            cols["x"], y, cols["z"], cols["road"], cols["bldg"], cols["water"], cols["tnm"], y_original):
+        set_blocks(region, xi, yi, zi, road_typei, tnm, biome=biome,
+                   canyon_layer_map=canyon_layer_map,
+                   canyon_layer_thicknesses=canyon_layer_thicknesses)
+
+        if bh > 0:
+            for i in range(int((bh - y_orig) * scale)):
+                region.set_if_inside(white_concrete, xi, yi + i, zi)
+        elif water > 0:
+            for i in range(3):  ## 水深3
+                region.set_if_inside(water_block, xi, yi - i, zi)
+        elif water_level_y is not None and yi < water_level_y:
+            for wy in range(yi + 1, water_level_y + 1):
+                region.set_if_inside(water_block, xi, wy, zi)
+
+    # atomic save: write temp then rename, so an interrupted run never leaves a
+    # half-written region that --resume would mistake for complete.
+    tmp_path = region_path + ".tmp"
+    region.save(tmp_path)
+    os.replace(tmp_path, region_path)
+    return ("done", region_path)
+
+
 def write_extended_height_datapack(output_folder, min_y, height, logical_height, pack_format=12):
     """Write a datapack that overrides ``minecraft:overworld`` with extended height.
 
@@ -341,8 +408,7 @@ def write_extended_height_datapack(output_folder, min_y, height, logical_height,
             "description": "Extended world height (1:1 terrain)",
         }
     }
-    with open(os.path.join(base, "pack.mcmeta"), "w") as f:
-        json.dump(mcmeta, f, indent=2)
+    _atomic_write_json(os.path.join(base, "pack.mcmeta"), mcmeta)
 
     # Vanilla overworld dimension_type with only the height fields raised.
     overworld = {
@@ -367,8 +433,7 @@ def write_extended_height_datapack(output_folder, min_y, height, logical_height,
         "infiniburn": "#minecraft:infiniburn_overworld",
         "effects": "minecraft:overworld",
     }
-    with open(os.path.join(dim_dir, "overworld.json"), "w") as f:
-        json.dump(overworld, f, indent=2)
+    _atomic_write_json(os.path.join(dim_dir, "overworld.json"), overworld)
 
     print(f"Wrote extended-height datapack: {base}")
     print("  To use: create a NEW world with this datapack enabled "
@@ -377,7 +442,7 @@ def write_extended_height_datapack(output_folder, min_y, height, logical_height,
 
 
 def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=None, biome=None, water_level=None,
-              extend_height=False, max_height=None, datapack_format=12, output_folder=None, resume=False):
+              extend_height=False, max_height=None, datapack_format=12, output_folder=None, resume=False, jobs=None):
 
     # 0より大きい値の最小値を取得
     min_value = df[df['y'] > 0]['y'].min()
@@ -421,11 +486,13 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
         logical_height = height
         world_max_y = min_y + height - 1
         anvil.set_world_height(world_max_y)
+        # datapack はここでは書かず、resume の整合性検証に通ってから書き出す（下記）。
+        datapack_params = (min_y, height, logical_height)
         print(f"Extended height ON: floor Y={min_y}, ceiling Y={world_max_y} "
               f"(datapack height={height}, sections={anvil.world_height.SECTION_COUNT})")
         print(f"Terrain top ~Y={required_max_y}, build headroom ~{world_max_y - required_max_y} blocks")
-        write_extended_height_datapack(output_folder, min_y, height, logical_height, datapack_format)
     else:
+        datapack_params = None
         # 通常（バニラ）モード: 直前の拡張実行の状態が同一プロセスに残らないよう毎回リセット
         anvil.set_world_height(anvil.world_height.VANILLA_MAX_Y)
         if required_max_y > anvil.world_height.WORLD_MAX_Y:
@@ -490,6 +557,7 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
     grouped = df.groupby(["region"])
     n_regions = df["region"].nunique()
 
+    # --- 成果物の書き出し前に resume 整合性を検証する（datapack/region/manifest より先） ---
     # 生成設定の manifest。--resume 時に設定が一致しない出力への追記（混在ワールド）を防ぐ。
     manifest = {
         "scale": float(scale),
@@ -500,68 +568,75 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
     }
     manifest_path = None
     if output_folder is not None:
-        manifest_path = os.path.join(output_folder, "region", "gen_manifest.json")
-        if resume and os.path.exists(manifest_path):
-            with open(manifest_path) as f:
-                prev = json.load(f)
-            if prev != manifest:
+        region_dir = os.path.join(output_folder, "region")
+        manifest_path = os.path.join(region_dir, "gen_manifest.json")
+        if resume:
+            if os.path.exists(manifest_path):
+                with open(manifest_path) as f:
+                    prev = json.load(f)
+                if prev != manifest:
+                    raise ValueError(
+                        "--resume parameters differ from the existing output "
+                        f"({prev} != {manifest}); use a fresh --output instead")
+            elif glob.glob(os.path.join(region_dir, "r.*.mca")):
+                # manifest 無しの既存 region は設定不明 → 混在を防ぐため再開を拒否
                 raise ValueError(
-                    "--resume parameters differ from the existing output "
-                    f"({prev} != {manifest}); use a fresh --output instead")
-        os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
-        with open(manifest_path, "w") as f:
-            json.dump(manifest, f, indent=2)
+                    "--resume found existing regions but no gen_manifest.json (unknown "
+                    "config); use a fresh --output or remove the old regions")
+
+        # 検証通過後にのみ書き出す。datapack→manifest の順（どちらも atomic）。
+        if datapack_params is not None:
+            write_extended_height_datapack(output_folder, *datapack_params, datapack_format)
+        _atomic_write_json(manifest_path, manifest)
 
     # 各 region は一時ファイルへ書いてから atomic rename で確定（=途中保存・中断耐性）。
     # --resume 指定時は、確定済みの region をスキップして続きから生成する。
-    progress = tqdm(grouped, total=n_regions, desc="Writing regions", unit="region")
+    active_max_y = anvil.world_height.WORLD_MAX_Y
+
+    def _iter_tasks():
+        for _name, group in grouped:
+            region_path = _name[0]
+            m = re.search(r"r\.(-?\d+)\.(-?\d+)\.mca", region_path)
+            rx, ry = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+            cols = {
+                "x": group["x"].to_numpy(),
+                "y": group["y"].to_numpy(),
+                "z": group["z"].to_numpy(),
+                "road": group["road"].to_numpy(),
+                "bldg": group["bldg"].to_numpy(),
+                "water": group["water"].to_numpy(),
+                "tnm": group["tnm"].to_numpy(),
+            }
+            yield (region_path, rx, ry, cols, resume)
+
+    ctx = {
+        "min_value": min_value, "scale": scale, "biome": biome,
+        "water_level_y": water_level_y,
+        "canyon_layer_map": canyon_layer_map,
+        "canyon_layer_thicknesses": canyon_layer_thicknesses,
+        "active_max_y": active_max_y,
+    }
+
+    n_jobs = os.cpu_count() if jobs is None else max(1, int(jobs))
     skipped = 0
-    for _name, group in progress:
-        region_path = _name[0]
-
-        # regionを作成
-        match = re.search(r"r\.(-?\d+)\.(-?\d+)\.mca", region_path)
-        if match:
-            rx, ry = match.groups()
-            rx = int(rx)
-            ry = int(ry)
-
-        progress.set_postfix_str(f"r.{rx}.{ry} cols={len(group)}")
-
-        if resume and os.path.exists(region_path) and os.path.getsize(region_path) > 0:
-            skipped += 1
-            continue
-
-        region = anvil.EmptyRegion(rx, ry)
-        x = group["x"]
-        y_original = group["y"]
-        y = ((group["y"] - min_value) * scale - 60).astype(int)
-        z = group["z"]
-        road_type = group["road"]
-        bldg_height = group["bldg"]
-        is_water = group["water"]
-        tnm_class = group["tnm"]
-
-        for xi, yi, zi, road_typei, bh, water, tnm, y_orig in zip(x, y, z, road_type, bldg_height, is_water, tnm_class, y_original):
-            set_blocks(region, xi, yi, zi, road_typei, tnm, biome=biome,
-                       canyon_layer_map=canyon_layer_map,
-                       canyon_layer_thicknesses=canyon_layer_thicknesses)
-
-            if bh > 0:
-                for i in range(int((bh - y_orig) * scale)):
-                    region.set_if_inside(white_concrete, xi, yi + i, zi)
-            elif water > 0:
-                for i in range(3): ## 水深3
-                    region.set_if_inside(water_block, xi, yi - i, zi)
-            elif water_level_y is not None and yi < water_level_y:
-                for wy in range(yi + 1, water_level_y + 1):
-                    region.set_if_inside(water_block, xi, wy, zi)
-
-        # 途中保存: 一時ファイルへ書いてから atomic rename。中断しても確定済みregionは破損しない。
-        tmp_path = region_path + ".tmp"
-        region.save(tmp_path)
-        os.replace(tmp_path, region_path)
-
+    progress = tqdm(total=n_regions, desc="Writing regions", unit="region")
+    if n_jobs == 1:
+        _worker_init(ctx)
+        for task in _iter_tasks():
+            status, path = _build_one_region(task)
+            if status == "skipped":
+                skipped += 1
+            progress.set_postfix_str(os.path.basename(path))
+            progress.update(1)
+    else:
+        from multiprocessing import Pool
+        print(f"Building regions with {n_jobs} processes...")
+        with Pool(processes=n_jobs, initializer=_worker_init, initargs=(ctx,)) as pool:
+            for status, path in pool.imap_unordered(_build_one_region, _iter_tasks()):
+                if status == "skipped":
+                    skipped += 1
+                progress.set_postfix_str(os.path.basename(path))
+                progress.update(1)
     progress.close()
     if resume and skipped:
         print(f"Resume: skipped {skipped} already-generated regions")
@@ -592,6 +667,8 @@ if __name__ == "__main__":
                         help="datapackのpack_format（既定12=MC1.19.4）")
     parser.add_argument("--resume", action="store_true",
                         help="既に書き出し済みのregion(.mca)をスキップして続きから生成")
+    parser.add_argument("--jobs", type=int, default=None,
+                        help="region生成の並列プロセス数（既定=CPUコア数、1で逐次）")
     args = parser.parse_args()
 
     resample = not args.no_resample
@@ -628,4 +705,4 @@ if __name__ == "__main__":
               scale=args.scale, biome=args.biome, water_level=args.water_level,
               extend_height=args.extend_height, max_height=args.max_height,
               datapack_format=args.datapack_format, output_folder=output_folder,
-              resume=args.resume)
+              resume=args.resume, jobs=args.jobs)
