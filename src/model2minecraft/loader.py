@@ -6,7 +6,7 @@ import trimesh
 from plateau2minecraft.types import TriangleMesh
 
 
-def load_mesh(file_path: Path, target_size: int, up_axis: str = "y") -> TriangleMesh:
+def load_mesh(file_path: Path, target_size: int | None = None, up_axis: str = "y") -> TriangleMesh:
     """汎用3Dモデル（.obj/.stl/.ply/.glb など）を読み込み、Minecraft向けに正規化した
     TriangleMesh を返す。
 
@@ -15,10 +15,12 @@ def load_mesh(file_path: Path, target_size: int, up_axis: str = "y") -> Triangle
     file_path
         読み込む3Dモデルファイル
     target_size
-        最長辺をこのブロック数になるよう自動スケールする
+        最長辺をこのブロック数になるよう自動スケールする。``None`` のときスケールしない
+        （terrain モードは原寸の半径から相対的に高さを決めるためスケール不要）。
     up_axis
         モデルの上方向軸。``"y"`` のとき Y/Z を入れ替え、内部表現を Z-up に統一する
-        （plateau の voxelizer / converter は Z を高さとして扱うため）。``"z"`` はそのまま。
+        （plateau の voxelizer / converter は Z を高さとして扱う。terrain の極軸も +Z）。
+        ``"z"`` はそのまま。
     """
     # force="mesh" で Scene でも単一 Trimesh に結合して返す
     loaded = trimesh.load(file_path, force="mesh")
@@ -33,12 +35,13 @@ def load_mesh(file_path: Path, target_size: int, up_axis: str = "y") -> Triangle
     if up_axis == "y":
         vertices[:, [1, 2]] = vertices[:, [2, 1]]
 
-    # 最長辺が target_size ブロックになるよう等方スケール
-    extent = vertices.max(axis=0) - vertices.min(axis=0)
-    max_extent = float(extent.max())
-    if max_extent <= 0:
-        raise ValueError(f"メッシュの寸法がゼロです: {file_path}")
-    scale = target_size / max_extent
-    vertices *= scale
+    # 最長辺が target_size ブロックになるよう等方スケール（None ならスキップ）
+    if target_size is not None:
+        extent = vertices.max(axis=0) - vertices.min(axis=0)
+        max_extent = float(extent.max())
+        if max_extent <= 0:
+            raise ValueError(f"メッシュの寸法がゼロです: {file_path}")
+        scale = target_size / max_extent
+        vertices *= scale
 
     return TriangleMesh(vertices=vertices, triangles=faces)
