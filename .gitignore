@@ -164,6 +164,7 @@ cython_debug/
 
 src/data/
 data/output/
+data/model/
 data/dem/*.tif
 
 .DS_Store
