@@ -1,14 +1,14 @@
 {
-  "namespace": "psl_gc",
+  "namespace": "gc_psl",
   "replacements": [
-    {"from": "minecraft:dead_tube_coral_block",   "to": "tapeats_fossil"},
-    {"from": "minecraft:dead_brain_coral_block",  "to": "bright_angel_fossil"},
-    {"from": "minecraft:dead_bubble_coral_block", "to": "muav_fossil"},
-    {"from": "minecraft:dead_fire_coral_block",   "to": "redwall_fossil"},
-    {"from": "minecraft:dead_horn_coral_block",   "to": "supai_fossil"},
-    {"from": "minecraft:tube_coral_block",        "to": "hermit_fossil"},
-    {"from": "minecraft:brain_coral_block",       "to": "coconino_fossil"},
-    {"from": "minecraft:bubble_coral_block",      "to": "toroweap_fossil"},
-    {"from": "minecraft:fire_coral_block",        "to": "kaibab_fossil"}
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "tube",   "dead": "true"},  "to": "tapeats_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "brain",  "dead": "true"},  "to": "bright_angel_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "bubble", "dead": "true"},  "to": "muav_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "fire",   "dead": "true"},  "to": "redwall_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "horn",   "dead": "true"},  "to": "supai_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "tube",   "dead": "false"}, "to": "hermit_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "brain",  "dead": "false"}, "to": "coconino_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "bubble", "dead": "false"}, "to": "toroweap_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "fire",   "dead": "false"}, "to": "kaibab_fossil"}
   ]
 }
