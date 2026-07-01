@@ -6,7 +6,7 @@ import math
 import rasterio
 import numpy as np
 import pandas as pd
-from scipy.ndimage import zoom
+from scipy.ndimage import zoom, gaussian_filter
 from tqdm import tqdm
 
 from grand_canyon.biome_config import CANYON_LAYERS_CONFIG, LayerConfig, FossilConfig
@@ -29,7 +29,7 @@ def _pixel_size_meters(src):
     return px_m, py_m
 
 
-def tiff_to_frame(tiff_file, output_folder, resample=True):
+def tiff_to_frame(tiff_file, output_folder, resample=True, meters_per_block=1.0, smooth=0.0):
     with rasterio.open(tiff_file) as src:
 
         # 幅と高さを取得
@@ -43,14 +43,25 @@ def tiff_to_frame(tiff_file, output_folder, resample=True):
         # 数値標高データを取得
         data = src.read(1)
 
-        if resample and (px_m > 1.5 or py_m > 1.5):
-            # 1ピクセル≒1mになるようCubic補間でリサンプリング
-            scale_x = px_m
-            scale_y = py_m
-            print(f"Resampling: {width}x{height} -> {int(width*scale_x)}x{int(height*scale_y)} (cubic interpolation)")
-            data = zoom(data, (scale_y, scale_x), order=3)
+        # 1ブロックが meters_per_block メートルを表すようリサンプリング。
+        # 拡大(>1)も縮小(<1)も同じ式で扱える。軸別に係数を掛けることで
+        # 緯度経度由来の px_m≠py_m でも実メートルで正方ブロックになる。
+        scale_x = px_m / meters_per_block
+        scale_y = py_m / meters_per_block
+        if resample and (abs(scale_x - 1.0) > 0.01 or abs(scale_y - 1.0) > 0.01):
+            # 拡大はcubic、縮小はlinear（cubicは縮小時にリンギングが出やすい）
+            order = 3 if (scale_x > 1.0 or scale_y > 1.0) else 1
+            print(f"Resampling: {width}x{height} -> "
+                  f"{int(width*scale_x)}x{int(height*scale_y)} "
+                  f"(target {meters_per_block}m/block, order={order})")
+            data = zoom(data, (scale_y, scale_x), order=order)
             height, width = data.shape
             print(f"Resampled size: {width}x{height}")
+
+        # 標高をガウシアンで平滑化（sigma=ブロック単位）。階段状の段差を丸めて地形を滑らかに。
+        if smooth and smooth > 0:
+            print(f"Smoothing elevation: gaussian sigma={smooth} blocks")
+            data = gaussian_filter(data, sigma=smooth)
 
         # 中心点のオフセットを計算
         offset_x = 0.5 if width % 2 == 0 else 0
@@ -116,6 +127,20 @@ cobblestone = anvil.Block("minecraft", "cobblestone")
 gray_concrete_powder = anvil.Block("minecraft", "gray_concrete_powder")
 white_concrete = anvil.Block("minecraft", "white_concrete")
 water_block = anvil.Block("minecraft", "water")
+
+# 砂漠系バイオームの地表/地下ブロック
+sand = anvil.Block("minecraft", "sand")
+sandstone = anvil.Block("minecraft", "sandstone")
+red_sand = anvil.Block("minecraft", "red_sand")
+red_sandstone = anvil.Block("minecraft", "red_sandstone")
+white_terracotta = anvil.Block("minecraft", "white_terracotta")
+orange_terracotta = anvil.Block("minecraft", "orange_terracotta")
+
+# biome名 -> (地表ブロック, 地下ブロック, 深部ブロック)。未登録（default等）は草/土/石。
+SURFACE_PALETTE = {
+    "desert": (sand, sandstone, white_terracotta),
+    "red_desert": (red_sand, red_sandstone, orange_terracotta),
+}
 
 TNM_BLOCK = [
     anvil.Block("minecraft", "yellow_stained_glass"),
@@ -292,8 +317,9 @@ def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
             block_name = select_canyon_block(x, height, z, layer, boundary)
             region.set_block(BLOCK_CACHE[block_name], x, height, z)
     else:
-        # 設定するブロックのリスト(草ブロック１、土ブロック１、石ブロック３のレイヤーをつくる)
-        blocks = [grass, dirt, stone, stone, stone]
+        # 地表/地下/深部ブロックをバイオームで切替（desert=砂/砂岩/茶テラコ, red_desert=赤砂/赤砂岩/茶テラコ）。
+        # 未登録（default等）は従来どおり草ブロック/土/石。
+        surface_block, subsurface_block, deep_block = SURFACE_PALETTE.get(biome, (grass, dirt, stone))
 
         # 5%の確率で草を生やす
         # if random.random() > 0.95 and y < 319:
@@ -307,21 +333,21 @@ def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
                 bedrock = anvil.Block("minecraft", "bedrock")
                 region.set_block(bedrock, x, i, z)
             else:
-                region.set_block(stone, x, i, z)
+                region.set_block(deep_block, x, i, z)
 
         for i in range(max(-64, height-3), height):
-            region.set_block(dirt, x, i, z)
+            region.set_block(subsurface_block, x, i, z)
 
-        if road_type > 200:
+        if road_type and road_type > 200:
             ## 道路は gray concrete powder
             region.set_block(gray_concrete_powder, x, height, z)
-        elif road_type > 100:
+        elif road_type and road_type > 100:
             region.set_block(cobblestone, x, height, z)
         elif tnm_class > 0:
             ## 津波の高さを設定
             region.set_block(TNM_BLOCK[tnm_class], x, height, z)
         else:
-            region.set_block(grass, x, height, z)
+            region.set_block(surface_block, x, height, z)
     
 
 def _atomic_write_json(path, obj):
@@ -653,12 +679,18 @@ if __name__ == "__main__":
     parser.add_argument("--tnm", required=False, help="tnm tiff file path", default=None)
     parser.add_argument("--scale", type=float, default=None,
                         help="垂直スケール係数（省略時は自動計算）")
-    parser.add_argument("--biome", type=str, default=None, choices=["default", "canyon"],
-                        help="ブロックパレット: default=草/土/石, canyon=砂岩/テラコッタ地層")
+    parser.add_argument("--biome", type=str, default=None,
+                        choices=["default", "canyon", "desert", "red_desert"],
+                        help="ブロックパレット: default=草/土/石, canyon=砂岩/テラコッタ地層, "
+                             "desert=砂/砂岩, red_desert=赤砂/赤砂岩")
     parser.add_argument("--water-level", type=float, default=None,
                         help="水面の標高（メートル）。この標高以下の地形に水を充填")
     parser.add_argument("--no-resample", action="store_true",
                         help="1ピクセル=1ブロックのまま（リサンプリングしない）")
+    parser.add_argument("--meters-per-block", type=float, default=1.0,
+                        help="水平縮尺: 1ブロックが表す実メートル数（既定1.0。例:100で100m/block）")
+    parser.add_argument("--smooth", type=float, default=0.0,
+                        help="地形の平滑化: 標高にかけるガウシアンのsigma（ブロック単位、既定0=無効。例:1.5）")
     parser.add_argument("--extend-height", action="store_true",
                         help="高さ制限を撤廃（カスタムdimension datapackを出力し、最大Y=2031まで生成）")
     parser.add_argument("--max-height", type=int, default=None,
@@ -683,22 +715,24 @@ if __name__ == "__main__":
 
     # tiffファイルを読み込む
     print(f"Reading tiff file: {tiff_file}")
-    df = tiff_to_frame(tiff_file, output_folder, resample=resample)
+    mpb = args.meters_per_block
+    df = tiff_to_frame(tiff_file, output_folder, resample=resample, meters_per_block=mpb,
+                       smooth=args.smooth)
     df_road = None
     df_bldg = None
     df_water = None
     df_tnm = None
     # 道路ファイルを読み込む
     if road_file is not None:
-        df_road = tiff_to_frame(road_file, output_folder, resample=resample)
+        df_road = tiff_to_frame(road_file, output_folder, resample=resample, meters_per_block=mpb)
 
     if bldg_file is not None:
-        df_bldg = tiff_to_frame(bldg_file, output_folder, resample=resample)
+        df_bldg = tiff_to_frame(bldg_file, output_folder, resample=resample, meters_per_block=mpb)
 
     if water_file is not None:
-        df_water = tiff_to_frame(water_file, output_folder, resample=resample)
+        df_water = tiff_to_frame(water_file, output_folder, resample=resample, meters_per_block=mpb)
     if tnm_file is not None:
-        df_tnm = tiff_to_frame(tnm_file, output_folder, resample=resample)
+        df_tnm = tiff_to_frame(tnm_file, output_folder, resample=resample, meters_per_block=mpb)
 
     # マップを作成
     df_to_map(df, df_road, df_bldg, df_water, df_tnm,
