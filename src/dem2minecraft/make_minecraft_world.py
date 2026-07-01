@@ -115,6 +115,48 @@ def tiff_to_frame(tiff_file, output_folder, resample=True, meters_per_block=1.0,
         })
         return df
 
+
+def antennas_to_blocks(tiff_file, antennas_csv, resample=True, meters_per_block=1.0):
+    """CSV(label,lon,lat) を地形と同じ中心化ロジックでブロック座標(x,z)へ変換。
+
+    ``tiff_to_frame`` と同じ「リサンプル後グリッドの画素indexから画像中心を引く」
+    式を再現する。DEMタイル範囲外（src.bounds外）の点はスキップして返す。
+    戻り値: DataFrame[label, x, z]（重なりは含む。dedupeは呼び出し側）。
+    """
+    points = pd.read_csv(antennas_csv)
+    with rasterio.open(tiff_file) as src:
+        left, bottom, right, top = src.bounds
+        px_m, py_m = _pixel_size_meters(src)
+        scale_x = px_m / meters_per_block
+        scale_y = py_m / meters_per_block
+        if resample and (abs(scale_x - 1.0) > 0.01 or abs(scale_y - 1.0) > 0.01):
+            # zoom の出力寸法に合わせる（scipy は round(n*zoom)）
+            width = int(round(src.width * scale_x))
+            height = int(round(src.height * scale_y))
+        else:
+            scale_x = scale_y = 1.0
+            width, height = src.width, src.height
+
+        offset_x = 0.5 if width % 2 == 0 else 0
+        offset_y = -0.5 if height % 2 == 0 else 0
+        center_x = width / 2.0 + offset_x
+        center_y = height / 2.0 + offset_y
+
+        t = src.transform  # a=lon/px, e=lat/px(負), c=左端lon, f=上端lat
+
+    in_bounds = ((points["lon"] >= left) & (points["lon"] <= right) &
+                 (points["lat"] >= bottom) & (points["lat"] <= top))
+    n_out = int((~in_bounds).sum())
+    pts = points[in_bounds].copy()
+
+    col_orig = (pts["lon"] - t.c) / t.a
+    row_orig = (pts["lat"] - t.f) / t.e          # t.e<0 のため (lat-上端)/負 = 正
+    x = np.trunc(col_orig * scale_x - center_x).astype(int)
+    z = np.trunc(row_orig * scale_y - center_y).astype(int)
+    out = pd.DataFrame({"label": pts["label"].values, "x": x.values, "z": z.values})
+    print(f"Antennas: {len(out)} mapped, {n_out} skipped (outside DEM tile)")
+    return out
+
 # ライブラリのインポート
 import anvil
 import random
@@ -388,6 +430,9 @@ def _build_one_region(task):
     canyon_layer_map = ctx["canyon_layer_map"]
     canyon_layer_thicknesses = ctx["canyon_layer_thicknesses"]
 
+    antenna_markers = ctx.get("antenna_markers")          # {region_path: [(x, z, surfaceY), ...]}
+    antenna_block_name = ctx.get("antenna_block_name")
+
     region = anvil.EmptyRegion(rx, ry)
     y = ((cols["y"] - min_value) * scale - 60).astype(int)
     y_original = cols["y"]
@@ -407,6 +452,12 @@ def _build_one_region(task):
         elif water_level_y is not None and yi < water_level_y:
             for wy in range(yi + 1, water_level_y + 1):
                 region.set_if_inside(water_block, xi, wy, zi)
+
+    # アンテナ位置マーカー: 地表ブロックを光るブロックで置換（1ブロック）
+    if antenna_markers:
+        marker = anvil.Block("minecraft", antenna_block_name)
+        for mx, mz, my in antenna_markers.get(region_path, ()):  # noqa: E741
+            region.set_if_inside(marker, mx, my, mz)
 
     # atomic save: write temp then rename, so an interrupted run never leaves a
     # half-written region that --resume would mistake for complete.
@@ -468,7 +519,8 @@ def write_extended_height_datapack(output_folder, min_y, height, logical_height,
 
 
 def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=None, biome=None, water_level=None,
-              extend_height=False, max_height=None, datapack_format=12, output_folder=None, resume=False, jobs=None):
+              extend_height=False, max_height=None, datapack_format=12, output_folder=None, resume=False, jobs=None,
+              antennas=None, antenna_block="sea_lantern"):
 
     # 0より大きい値の最小値を取得
     min_value = df[df['y'] > 0]['y'].min()
@@ -635,12 +687,26 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
             }
             yield (region_path, rx, ry, cols, resume)
 
+    # アンテナマーカー: (x,z)を地形dfに突き合わせて標高→地表Yを求め、region毎にまとめる
+    antenna_markers = None
+    if antennas is not None and len(antennas) > 0:
+        a = antennas.drop_duplicates(subset=["x", "z"]).merge(
+            df[["x", "z", "y", "region"]], on=["x", "z"], how="inner")
+        a["my"] = ((a["y"] - min_value) * scale - 60).astype(int)
+        antenna_markers = {}
+        for region_path, mx, mz, my in zip(a["region"], a["x"], a["z"], a["my"]):
+            antenna_markers.setdefault(region_path, []).append((int(mx), int(mz), int(my)))
+        total = sum(len(v) for v in antenna_markers.values())
+        print(f"Antenna markers: {total} blocks ({antenna_block}) across {len(antenna_markers)} regions")
+
     ctx = {
         "min_value": min_value, "scale": scale, "biome": biome,
         "water_level_y": water_level_y,
         "canyon_layer_map": canyon_layer_map,
         "canyon_layer_thicknesses": canyon_layer_thicknesses,
         "active_max_y": active_max_y,
+        "antenna_markers": antenna_markers,
+        "antenna_block_name": antenna_block,
     }
 
     n_jobs = os.cpu_count() if jobs is None else max(1, int(jobs))
@@ -691,6 +757,10 @@ if __name__ == "__main__":
                         help="水平縮尺: 1ブロックが表す実メートル数（既定1.0。例:100で100m/block）")
     parser.add_argument("--smooth", type=float, default=0.0,
                         help="地形の平滑化: 標高にかけるガウシアンのsigma（ブロック単位、既定0=無効。例:1.5）")
+    parser.add_argument("--antennas", type=str, default=None,
+                        help="アンテナ座標CSV(label,lon,lat)。各位置の地表に光るブロックを配置")
+    parser.add_argument("--antenna-block", type=str, default="sea_lantern",
+                        help="アンテナマーカーのブロック名（既定sea_lantern）")
     parser.add_argument("--extend-height", action="store_true",
                         help="高さ制限を撤廃（カスタムdimension datapackを出力し、最大Y=2031まで生成）")
     parser.add_argument("--max-height", type=int, default=None,
@@ -734,9 +804,15 @@ if __name__ == "__main__":
     if tnm_file is not None:
         df_tnm = tiff_to_frame(tnm_file, output_folder, resample=resample, meters_per_block=mpb)
 
+    # アンテナ座標を地形と同じグリッドでブロック座標へ変換
+    antennas = None
+    if args.antennas is not None:
+        antennas = antennas_to_blocks(tiff_file, args.antennas, resample=resample, meters_per_block=mpb)
+
     # マップを作成
     df_to_map(df, df_road, df_bldg, df_water, df_tnm,
               scale=args.scale, biome=args.biome, water_level=args.water_level,
               extend_height=args.extend_height, max_height=args.max_height,
               datapack_format=args.datapack_format, output_folder=output_folder,
-              resume=args.resume, jobs=args.jobs)
+              resume=args.resume, jobs=args.jobs,
+              antennas=antennas, antenna_block=args.antenna_block)
