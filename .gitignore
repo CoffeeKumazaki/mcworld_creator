@@ -167,5 +167,6 @@ data/output/
 data/model/
 data/world/
 data/dem/*.tif
+data/dem/**/*.tif
 
 .DS_Store

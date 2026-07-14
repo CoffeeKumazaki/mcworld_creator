@@ -1,0 +1,1006 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.4 2390de5a",
+  "osm3s": {
+    "timestamp_osm_base": "2026-07-14T08:43:31Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 2377898978,
+  "lat": -26.6959962,
+  "lon": 116.6289727,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Balayi",
+    "ref:ASKAP": "9",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898979,
+  "lat": -26.6944747,
+  "lon": 116.6304642,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Bardi",
+    "ref:ASKAP": "10",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898980,
+  "lat": -26.6926588,
+  "lon": 116.6336277,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Biji-biji",
+    "ref:ASKAP": "19",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898981,
+  "lat": -26.6966844,
+  "lon": 116.6313350,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Bimba",
+    "ref:ASKAP": "4",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898982,
+  "lat": -26.6681988,
+  "lon": 116.6317504,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Birli",
+    "ref:ASKAP": "36",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898983,
+  "lat": -26.6971189,
+  "lon": 116.6316951,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Birliya",
+    "ref:ASKAP": "2",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898984,
+  "lat": -26.6984077,
+  "lon": 116.6239841,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Birri-birri",
+    "ref:ASKAP": "15",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898985,
+  "lat": -26.6970007,
+  "lon": 116.6314243,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Biyarli",
+    "ref:ASKAP": "1",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898986,
+  "lat": -26.7223810,
+  "lon": 116.6315942,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Budara",
+    "ref:ASKAP": "33",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898987,
+  "lat": -26.6969340,
+  "lon": 116.6317859,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Bundara",
+    "ref:ASKAP": "3",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898988,
+  "lat": -26.6902148,
+  "lon": 116.6371346,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Diggidumble",
+    "ref:ASKAP": "29",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898989,
+  "lat": -26.7011534,
+  "lon": 116.6311610,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Gagu",
+    "ref:ASKAP": "14",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898990,
+  "lat": -26.6967144,
+  "lon": 116.6306814,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Gagurla",
+    "ref:ASKAP": "5",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898991,
+  "lat": -26.6936075,
+  "lon": 116.6303618,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Ilgarijirri",
+    "ref:ASKAP": "18",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898992,
+  "lat": -26.6980000,
+  "lon": 116.6338624,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Irra bardi",
+    "ref:ASKAP": "7",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377898999,
+  "lat": -26.7002986,
+  "lon": 116.6358239,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Jabi",
+    "ref:ASKAP": "13",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899002,
+  "lat": -26.7058376,
+  "lon": 116.6321847,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Janimaarnu",
+    "ref:ASKAP": "24",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899005,
+  "lat": -26.6936845,
+  "lon": 116.6250408,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Jindi-Jindi",
+    "ref:ASKAP": "16",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899006,
+  "lat": -26.7150404,
+  "lon": 116.6014562,
+  "tags": {
+    "alt_name": "Square Kilometre Array.",
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "loc_name": "EDGES",
+    "man_made": "telescope",
+    "name": "Jinna Wirri radio telescope",
+    "ref:ASKAP": "34",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899007,
+  "lat": -26.6991532,
+  "lon": 116.6310373,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Jirdilungu",
+    "ref:ASKAP": "8",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899008,
+  "lat": -26.6910842,
+  "lon": 116.6252755,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Magamarra",
+    "ref:ASKAP": "25",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899009,
+  "lat": -26.6939330,
+  "lon": 116.6341276,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Manggawarla",
+    "ref:ASKAP": "11",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899010,
+  "lat": -26.6922700,
+  "lon": 116.6264456,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Marlu",
+    "ref:ASKAP": "17",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899011,
+  "lat": -26.6941111,
+  "lon": 116.6383309,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Minda",
+    "ref:ASKAP": "21",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899012,
+  "lat": -26.6880914,
+  "lon": 116.6537766,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Mungal",
+    "ref:ASKAP": "31",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899013,
+  "lat": -26.6879769,
+  "lon": 116.6096318,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Ngubanu",
+    "ref:ASKAP": "35",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899014,
+  "lat": -26.6861861,
+  "lon": 116.6339695,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Ngurlubarndi",
+    "ref:ASKAP": "28",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899015,
+  "lat": -26.7029327,
+  "lon": 116.6313981,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Nyambi",
+    "ref:ASKAP": "23",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899016,
+  "lat": -26.6898230,
+  "lon": 116.6438013,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Nyarluwarri",
+    "ref:ASKAP": "30",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899017,
+  "lat": -26.6939890,
+  "lon": 116.6399363,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Nyingari",
+    "ref:ASKAP": "22",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899018,
+  "lat": -26.6941695,
+  "lon": 116.6365229,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Wana",
+    "ref:ASKAP": "20",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899019,
+  "lat": -26.6959930,
+  "lon": 116.6327912,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Wilara",
+    "ref:ASKAP": "6",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899020,
+  "lat": -26.7197120,
+  "lon": 116.6617643,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Woodarudda",
+    "ref:ASKAP": "32",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899021,
+  "lat": -26.6945780,
+  "lon": 116.6354119,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Yalibirri",
+    "ref:ASKAP": "12",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899022,
+  "lat": -26.6884765,
+  "lon": 116.6206916,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Yamaljingga",
+    "ref:ASKAP": "27",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 2377899023,
+  "lat": -26.6909637,
+  "lon": 116.6274900,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "name": "Yamatji nyarlu",
+    "ref:ASKAP": "26",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "node",
+  "id": 3125143028,
+  "lat": -26.7086710,
+  "lon": 116.6337646,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "diameter": "12",
+    "frequency": "0.7 - 1.8 GHz",
+    "man_made": "telescope",
+    "source": "Mapbox sat",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "node",
+  "id": 5760677524,
+  "lat": -26.7084159,
+  "lon": 116.6341933,
+  "tags": {
+    "antenna:propagation": "reception",
+    "antenna:reflector": "dish",
+    "man_made": "telescope",
+    "telescope:type": "radio",
+    "website": "https://www.atnf.csiro.au/projects/askap/"
+  }
+},
+{
+  "type": "way",
+  "id": 1120297154,
+  "center": {
+    "lat": -26.7022258,
+    "lon": 116.6709293
+  },
+  "tags": {
+    "antenna": "dual-polarization dipoles",
+    "antenna:configuration": "dipole",
+    "antenna:polarisation": "dual",
+    "antenna:propagation": "reception",
+    "area": "yes",
+    "frequency": "80 - 300 MHz",
+    "man_made": "telescope",
+    "name": "MWA South Hex",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1120297155,
+  "center": {
+    "lat": -26.7010558,
+    "lon": 116.6718934
+  },
+  "tags": {
+    "antenna": "dual-polarization dipoles",
+    "antenna:configuration": "dipole",
+    "antenna:polarisation": "dual",
+    "antenna:propagation": "reception",
+    "area": "yes",
+    "frequency": "80 - 300 MHz",
+    "man_made": "telescope",
+    "name": "MWA North Hex",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1120297156,
+  "center": {
+    "lat": -26.7047646,
+    "lon": 116.6724540
+  },
+  "tags": {
+    "antenna": "dual-polarization dipoles",
+    "antenna:configuration": "dipole",
+    "antenna:polarisation": "dual",
+    "antenna:propagation": "reception",
+    "area": "yes",
+    "frequency": "80 - 300 MHz",
+    "man_made": "telescope",
+    "name": "Engineering Development Array 2 (EDA2)",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1120297157,
+  "center": {
+    "lat": -26.7047979,
+    "lon": 116.6707797
+  },
+  "tags": {
+    "antenna": "dual-polarization dipoles",
+    "antenna:configuration": "dipole",
+    "antenna:polarisation": "dual",
+    "antenna:propagation": "reception",
+    "area": "yes",
+    "frequency": "80 - 300 MHz",
+    "man_made": "telescope",
+    "name": "Aperture Array Verification System 2 (AAVS2)",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1268041283,
+  "center": {
+    "lat": -26.7030581,
+    "lon": 116.6722458
+  },
+  "tags": {
+    "antenna": "dual-polarization dipoles",
+    "antenna:configuration": "dipole",
+    "antenna:polarisation": "dual",
+    "antenna:propagation": "reception",
+    "area": "yes",
+    "frequency": "80 - 300 MHz",
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1268041284,
+  "center": {
+    "lat": -26.7040632,
+    "lon": 116.6702221
+  },
+  "tags": {
+    "antenna": "dual-polarization dipoles",
+    "antenna:configuration": "dipole",
+    "antenna:polarisation": "dual",
+    "antenna:propagation": "reception",
+    "area": "yes",
+    "frequency": "80 - 300 MHz",
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018457,
+  "center": {
+    "lat": -26.8556367,
+    "lon": 116.7301147
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018459,
+  "center": {
+    "lat": -26.8331351,
+    "lon": 116.7637197
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018460,
+  "center": {
+    "lat": -26.8291039,
+    "lon": 116.7600096
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018461,
+  "center": {
+    "lat": -26.8343898,
+    "lon": 116.7716030
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018462,
+  "center": {
+    "lat": -26.8299778,
+    "lon": 116.7812991
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018463,
+  "center": {
+    "lat": -26.8211115,
+    "lon": 116.7727845
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018464,
+  "center": {
+    "lat": -26.8142711,
+    "lon": 116.7703116
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018465,
+  "center": {
+    "lat": -26.8088146,
+    "lon": 116.7613765
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018467,
+  "center": {
+    "lat": -26.8189729,
+    "lon": 116.7622589
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018468,
+  "center": {
+    "lat": -26.8201033,
+    "lon": 116.7567557
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018469,
+  "center": {
+    "lat": -26.8254711,
+    "lon": 116.7513856
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018471,
+  "center": {
+    "lat": -26.8246501,
+    "lon": 116.7641892
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018472,
+  "center": {
+    "lat": -26.8258603,
+    "lon": 116.7708980
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018495,
+  "center": {
+    "lat": -26.8804673,
+    "lon": 116.7478296
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025268,
+  "center": {
+    "lat": -26.8360289,
+    "lon": 116.8114054
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025271,
+  "center": {
+    "lat": -26.8101622,
+    "lon": 116.8265248
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025274,
+  "center": {
+    "lat": -26.8613780,
+    "lon": 116.8348328
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025277,
+  "center": {
+    "lat": -26.8119698,
+    "lon": 116.9384786
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1490304511,
+  "center": {
+    "lat": -26.9495180,
+    "lon": 116.6545330
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+},
+{
+  "type": "way",
+  "id": 1491364964,
+  "center": {
+    "lat": -26.8351159,
+    "lon": 116.7507573
+  },
+  "tags": {
+    "man_made": "telescope",
+    "telescope:type": "radio"
+  }
+}
+
+  ]
+}

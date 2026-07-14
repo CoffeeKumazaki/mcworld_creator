@@ -1,0 +1,607 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.4 2390de5a",
+  "osm3s": {
+    "timestamp_osm_base": "2026-07-14T13:52:07Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "way",
+  "id": 307391922,
+  "center": {
+    "lat": -26.7078949,
+    "lon": 116.6632098
+  },
+  "tags": {
+    "aeroway": "runway",
+    "source": "Mapbox sat",
+    "surface": "dirt"
+  }
+},
+{
+  "type": "way",
+  "id": 307391923,
+  "center": {
+    "lat": -26.7361473,
+    "lon": 116.6675070
+  },
+  "tags": {
+    "aeroway": "runway",
+    "source": "Mapbox sat",
+    "surface": "dirt"
+  }
+},
+{
+  "type": "way",
+  "id": 307391924,
+  "center": {
+    "lat": -26.7392466,
+    "lon": 116.6666429
+  },
+  "tags": {
+    "aeroway": "runway",
+    "source": "Mapbox sat",
+    "surface": "dirt"
+  }
+},
+{
+  "type": "way",
+  "id": 307391925,
+  "center": {
+    "lat": -26.7415581,
+    "lon": 116.6654014
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 307391926,
+  "center": {
+    "lat": -26.7428371,
+    "lon": 116.6652642
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 307391928,
+  "center": {
+    "lat": -26.7429560,
+    "lon": 116.6659966
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Mapbox sat"
+  }
+},
+{
+  "type": "way",
+  "id": 307515559,
+  "center": {
+    "lat": -26.7441591,
+    "lon": 116.6679192
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Mapbox sat"
+  }
+},
+{
+  "type": "way",
+  "id": 307515560,
+  "center": {
+    "lat": -26.7433477,
+    "lon": 116.6671205
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Mapbox sat"
+  }
+},
+{
+  "type": "way",
+  "id": 307515561,
+  "center": {
+    "lat": -26.7432061,
+    "lon": 116.6670773
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Mapbox sat"
+  }
+},
+{
+  "type": "way",
+  "id": 307515562,
+  "center": {
+    "lat": -26.7425307,
+    "lon": 116.6654664
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Mapbox sat"
+  }
+},
+{
+  "type": "way",
+  "id": 629792386,
+  "center": {
+    "lat": -26.7032330,
+    "lon": 116.6700618
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Ersi World Imagery Clarity"
+  }
+},
+{
+  "type": "way",
+  "id": 629792387,
+  "center": {
+    "lat": -26.7032772,
+    "lon": 116.6696860
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Ersi World Imagery Clarity"
+  }
+},
+{
+  "type": "way",
+  "id": 629792388,
+  "center": {
+    "lat": -26.7033899,
+    "lon": 116.6695817
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 629792389,
+  "center": {
+    "lat": -26.7033449,
+    "lon": 116.6708692
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Ersi World Imagery Clarity"
+  }
+},
+{
+  "type": "way",
+  "id": 629792390,
+  "center": {
+    "lat": -26.7033270,
+    "lon": 116.6707505
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Ersi World Imagery Clarity"
+  }
+},
+{
+  "type": "way",
+  "id": 629792391,
+  "center": {
+    "lat": -26.7032886,
+    "lon": 116.6708874
+  },
+  "tags": {
+    "building": "yes",
+    "name": "MWA Donga",
+    "source": "Ersi World Imagery Clarity"
+  }
+},
+{
+  "type": "way",
+  "id": 629792393,
+  "center": {
+    "lat": -26.7177120,
+    "lon": 116.6671979
+  },
+  "tags": {
+    "building": "yes",
+    "source": "Ersi World Imagery Clarity"
+  }
+},
+{
+  "type": "way",
+  "id": 704233815,
+  "center": {
+    "lat": -26.7101387,
+    "lon": 116.6629051
+  },
+  "tags": {
+    "aeroway": "taxiway"
+  }
+},
+{
+  "type": "way",
+  "id": 704233816,
+  "center": {
+    "lat": -26.7067580,
+    "lon": 116.6630505
+  },
+  "tags": {
+    "aeroway": "apron"
+  }
+},
+{
+  "type": "way",
+  "id": 704233818,
+  "center": {
+    "lat": -26.7120125,
+    "lon": 116.6628976
+  },
+  "tags": {
+    "aeroway": "taxiway"
+  }
+},
+{
+  "type": "way",
+  "id": 704233819,
+  "center": {
+    "lat": -26.7121998,
+    "lon": 116.6625521
+  },
+  "tags": {
+    "aeroway": "apron"
+  }
+},
+{
+  "type": "way",
+  "id": 704281450,
+  "center": {
+    "lat": -26.7466439,
+    "lon": 116.6834102
+  },
+  "tags": {
+    "building": "yes",
+    "man_made": "storage_tank"
+  }
+},
+{
+  "type": "way",
+  "id": 867883321,
+  "center": {
+    "lat": -26.7534558,
+    "lon": 116.6579014
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883322,
+  "center": {
+    "lat": -26.7533696,
+    "lon": 116.6591620
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883323,
+  "center": {
+    "lat": -26.7533744,
+    "lon": 116.6590936
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883324,
+  "center": {
+    "lat": -26.7533756,
+    "lon": 116.6590105
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883325,
+  "center": {
+    "lat": -26.7533686,
+    "lon": 116.6589337
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883326,
+  "center": {
+    "lat": -26.7533503,
+    "lon": 116.6588282
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883327,
+  "center": {
+    "lat": -26.7533041,
+    "lon": 116.6590542
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883328,
+  "center": {
+    "lat": -26.7533124,
+    "lon": 116.6592476
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883329,
+  "center": {
+    "lat": -26.7533123,
+    "lon": 116.6593300
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883330,
+  "center": {
+    "lat": -26.7532779,
+    "lon": 116.6592476
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883331,
+  "center": {
+    "lat": -26.7532779,
+    "lon": 116.6593300
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883332,
+  "center": {
+    "lat": -26.7532438,
+    "lon": 116.6593295
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883333,
+  "center": {
+    "lat": -26.7532438,
+    "lon": 116.6592472
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883334,
+  "center": {
+    "lat": -26.7531708,
+    "lon": 116.6586537
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883335,
+  "center": {
+    "lat": -26.7530135,
+    "lon": 116.6586548
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867883336,
+  "center": {
+    "lat": -26.7530911,
+    "lon": 116.6585625
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 867885826,
+  "center": {
+    "lat": -26.7463445,
+    "lon": 116.6429609
+  },
+  "tags": {
+    "building": "yes",
+    "comment": "base of another radio telescope?"
+  }
+},
+{
+  "type": "way",
+  "id": 1012949919,
+  "center": {
+    "lat": -26.7033504,
+    "lon": 116.6695851
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1120300521,
+  "center": {
+    "lat": -26.7025045,
+    "lon": 116.6628056
+  },
+  "tags": {
+    "aeroway": "runway",
+    "source": "Mapbox sat",
+    "surface": "dirt"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018458,
+  "center": {
+    "lat": -26.8410814,
+    "lon": 116.7456939
+  },
+  "tags": {
+    "aeroway": "aerodrome"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018466,
+  "center": {
+    "lat": -26.8120098,
+    "lon": 116.7540623
+  },
+  "tags": {
+    "landuse": "construction"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018470,
+  "center": {
+    "lat": -26.8360652,
+    "lon": 116.7592147
+  },
+  "tags": {
+    "landuse": "construction"
+  }
+},
+{
+  "type": "way",
+  "id": 1488018490,
+  "center": {
+    "lat": -26.8727964,
+    "lon": 116.7290666
+  },
+  "tags": {
+    "landuse": "construction"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025269,
+  "center": {
+    "lat": -26.8402976,
+    "lon": 116.8139234
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025270,
+  "center": {
+    "lat": -26.8146800,
+    "lon": 116.8256442
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025275,
+  "center": {
+    "lat": -26.8571034,
+    "lon": 116.8336452
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025276,
+  "center": {
+    "lat": -26.8571020,
+    "lon": 116.8337808
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1488025282,
+  "center": {
+    "lat": -26.8148025,
+    "lon": 116.8255942
+  },
+  "tags": {
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1489813927,
+  "center": {
+    "lat": -26.8191333,
+    "lon": 116.7420117
+  },
+  "tags": {
+    "landuse": "construction"
+  }
+},
+{
+  "type": "way",
+  "id": 1490268652,
+  "center": {
+    "lat": -26.8410810,
+    "lon": 116.7456736
+  },
+  "tags": {
+    "aeroway": "runway",
+    "surface": "dirt"
+  }
+}
+
+  ]
+}

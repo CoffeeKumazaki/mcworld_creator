@@ -168,6 +168,7 @@ stone = anvil.Block("minecraft", "stone")
 cobblestone = anvil.Block("minecraft", "cobblestone")
 gray_concrete_powder = anvil.Block("minecraft", "gray_concrete_powder")
 white_concrete = anvil.Block("minecraft", "white_concrete")
+light_gray_concrete = anvil.Block("minecraft", "light_gray_concrete")
 water_block = anvil.Block("minecraft", "water")
 
 # 砂漠系バイオームの地表/地下ブロック
@@ -319,7 +320,15 @@ tall_grass_u = anvil.Block("minecraft", "tall_grass", properties={"half": "upper
 
 # ブロックを設置する処理
 def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
-               canyon_layer_map=None, canyon_layer_thicknesses=None):
+               canyon_layer_map=None, canyon_layer_thicknesses=None, road_block=None,
+               pad_type=0, pad_block=None, mesh_type=0, mesh_block=None):
+
+    # 道路ブロックは呼び出し側で差し替え可能（未指定なら従来のgray concrete powder）
+    road_surface = road_block if road_block is not None else gray_concrete_powder
+    # 舗装/造成面(滑走路・apron・construction等)。未指定なら砂岩
+    pad_surface = pad_block if pad_block is not None else sandstone
+    # アンテナ下のグラウンドプレーン(金網)。未指定なら light_gray_concrete
+    mesh_surface = mesh_block if mesh_block is not None else light_gray_concrete
 
     height_limit = anvil.world_height.WORLD_MAX_Y
     height = np.clip(y, -64, height_limit)
@@ -344,7 +353,7 @@ def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
                 region.set_block(BLOCK_CACHE[block_name], x, i, z)
         # 地表面
         if road_type and road_type > 200:
-            region.set_block(gray_concrete_powder, x, height, z)
+            region.set_block(road_surface, x, height, z)
         elif road_type and road_type > 100:
             region.set_block(cobblestone, x, height, z)
         else:
@@ -380,11 +389,17 @@ def set_blocks(region, x, y, z, road_type=0, tnm_class=0, biome=None,
         for i in range(max(-64, height-3), height):
             region.set_block(subsurface_block, x, i, z)
 
-        if road_type and road_type > 200:
-            ## 道路は gray concrete powder
-            region.set_block(gray_concrete_powder, x, height, z)
+        if mesh_type and mesh_type > 200:
+            ## アンテナ下のグラウンドプレーン(金網)。道路/padより優先。--mesh-blockで差替可
+            region.set_block(mesh_surface, x, height, z)
+        elif road_type and road_type > 200:
+            ## 道路ブロック（既定gray concrete powder、--road-blockで差替可）
+            region.set_block(road_surface, x, height, z)
         elif road_type and road_type > 100:
             region.set_block(cobblestone, x, height, z)
+        elif pad_type and pad_type > 200:
+            ## 舗装/造成面（滑走路・apron・construction）。既定砂岩、--pad-blockで差替可
+            region.set_block(pad_surface, x, height, z)
         elif tnm_class > 0:
             ## 津波の高さを設定
             region.set_block(TNM_BLOCK[tnm_class], x, height, z)
@@ -432,16 +447,25 @@ def _build_one_region(task):
 
     antenna_markers = ctx.get("antenna_markers")          # {region_path: [(x, z, surfaceY), ...]}
     antenna_block_name = ctx.get("antenna_block_name")
+    road_block_name = ctx.get("road_block_name")
+    road_block_obj = anvil.Block("minecraft", road_block_name) if road_block_name else None
+    pad_block_name = ctx.get("pad_block_name")
+    pad_block_obj = anvil.Block("minecraft", pad_block_name) if pad_block_name else None
+    mesh_block_name = ctx.get("mesh_block_name")
+    mesh_block_obj = anvil.Block("minecraft", mesh_block_name) if mesh_block_name else None
 
     region = anvil.EmptyRegion(rx, ry)
     y = ((cols["y"] - min_value) * scale - 60).astype(int)
     y_original = cols["y"]
 
-    for xi, yi, zi, road_typei, bh, water, tnm, y_orig in zip(
-            cols["x"], y, cols["z"], cols["road"], cols["bldg"], cols["water"], cols["tnm"], y_original):
+    for xi, yi, zi, road_typei, bh, water, tnm, pad, mesh, y_orig in zip(
+            cols["x"], y, cols["z"], cols["road"], cols["bldg"], cols["water"], cols["tnm"],
+            cols["pad"], cols["mesh"], y_original):
         set_blocks(region, xi, yi, zi, road_typei, tnm, biome=biome,
                    canyon_layer_map=canyon_layer_map,
-                   canyon_layer_thicknesses=canyon_layer_thicknesses)
+                   canyon_layer_thicknesses=canyon_layer_thicknesses,
+                   road_block=road_block_obj, pad_type=pad, pad_block=pad_block_obj,
+                   mesh_type=mesh, mesh_block=mesh_block_obj)
 
         if bh > 0:
             for i in range(int((bh - y_orig) * scale)):
@@ -520,7 +544,9 @@ def write_extended_height_datapack(output_folder, min_y, height, logical_height,
 
 def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=None, biome=None, water_level=None,
               extend_height=False, max_height=None, datapack_format=12, output_folder=None, resume=False, jobs=None,
-              antennas=None, antenna_block="sea_lantern"):
+              antennas=None, antenna_block="sea_lantern", road_block="gray_concrete_powder",
+              pad_df=None, pad_block="smooth_sandstone",
+              mesh_df=None, mesh_block="light_gray_concrete"):
 
     # 0より大きい値の最小値を取得
     min_value = df[df['y'] > 0]['y'].min()
@@ -606,6 +632,18 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
     else:
         df['tnm'] = -1
 
+    if pad_df is not None:
+        pad_df = pad_df.rename(columns={'y': 'pad'})
+        df = pd.merge(df, pad_df[['x', 'z', 'pad']], on=['x', 'z'], how='left')
+    else:
+        df['pad'] = -1
+
+    if mesh_df is not None:
+        mesh_df = mesh_df.rename(columns={'y': 'mesh'})
+        df = pd.merge(df, mesh_df[['x', 'z', 'mesh']], on=['x', 'z'], how='left')
+    else:
+        df['mesh'] = -1
+
     # Canyon レイヤーマップをスケール適用後の高さで生成
     canyon_layer_map = None
     canyon_layer_thicknesses = None
@@ -684,6 +722,8 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
                 "bldg": group["bldg"].to_numpy(),
                 "water": group["water"].to_numpy(),
                 "tnm": group["tnm"].to_numpy(),
+                "pad": group["pad"].to_numpy(),
+                "mesh": group["mesh"].to_numpy(),
             }
             yield (region_path, rx, ry, cols, resume)
 
@@ -707,6 +747,9 @@ def df_to_map(df, road_df=None, bldg_df=None, df_water=None, df_tnm=None, scale=
         "active_max_y": active_max_y,
         "antenna_markers": antenna_markers,
         "antenna_block_name": antenna_block,
+        "road_block_name": road_block,
+        "pad_block_name": pad_block,
+        "mesh_block_name": mesh_block,
     }
 
     n_jobs = os.cpu_count() if jobs is None else max(1, int(jobs))
@@ -761,6 +804,14 @@ if __name__ == "__main__":
                         help="アンテナ座標CSV(label,lon,lat)。各位置の地表に光るブロックを配置")
     parser.add_argument("--antenna-block", type=str, default="sea_lantern",
                         help="アンテナマーカーのブロック名（既定sea_lantern）")
+    parser.add_argument("--road-block", type=str, default="gray_concrete_powder",
+                        help="道路ブロック名（road値>200。既定gray_concrete_powder。例:packed_mud）")
+    parser.add_argument("--pad", required=False, help="舗装/造成面TIFF（滑走路・apron・construction等）", default=None)
+    parser.add_argument("--pad-block", type=str, default="smooth_sandstone",
+                        help="舗装/造成面のブロック名（pad値>200。既定smooth_sandstone）")
+    parser.add_argument("--mesh", required=False, help="グラウンドプレーン(金網)TIFF（アンテナ下の円盤）", default=None)
+    parser.add_argument("--mesh-block", type=str, default="light_gray_concrete",
+                        help="グラウンドプレーンのブロック名（mesh値>200。既定light_gray_concrete。例:iron_block）")
     parser.add_argument("--extend-height", action="store_true",
                         help="高さ制限を撤廃（カスタムdimension datapackを出力し、最大Y=2031まで生成）")
     parser.add_argument("--max-height", type=int, default=None,
@@ -803,6 +854,12 @@ if __name__ == "__main__":
         df_water = tiff_to_frame(water_file, output_folder, resample=resample, meters_per_block=mpb)
     if tnm_file is not None:
         df_tnm = tiff_to_frame(tnm_file, output_folder, resample=resample, meters_per_block=mpb)
+    df_pad = None
+    if args.pad is not None:
+        df_pad = tiff_to_frame(args.pad, output_folder, resample=resample, meters_per_block=mpb)
+    df_mesh = None
+    if args.mesh is not None:
+        df_mesh = tiff_to_frame(args.mesh, output_folder, resample=resample, meters_per_block=mpb)
 
     # アンテナ座標を地形と同じグリッドでブロック座標へ変換
     antennas = None
@@ -815,4 +872,7 @@ if __name__ == "__main__":
               extend_height=args.extend_height, max_height=args.max_height,
               datapack_format=args.datapack_format, output_folder=output_folder,
               resume=args.resume, jobs=args.jobs,
-              antennas=antennas, antenna_block=args.antenna_block)
+              antennas=antennas, antenna_block=args.antenna_block,
+              road_block=args.road_block,
+              pad_df=df_pad, pad_block=args.pad_block,
+              mesh_df=df_mesh, mesh_block=args.mesh_block)
