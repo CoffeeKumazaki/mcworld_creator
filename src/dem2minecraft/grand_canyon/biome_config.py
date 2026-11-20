@@ -91,7 +91,9 @@ CANYON_LAYERS_CONFIG = [
         pattern="default",
         discontinuous=True,
         discontinuous_pct=0.30,
-        fossils=[],
+        fossils=[
+            FossilConfig("temple_butte_fossil", "horn_coral_block", 3, 10, 33),
+        ],
     ),
     LayerConfig(
         name="redwall",
