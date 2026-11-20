@@ -9,6 +9,7 @@
     {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "tube",   "dead": "false"}, "to": "hermit_fossil"},
     {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "brain",  "dead": "false"}, "to": "coconino_fossil"},
     {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "bubble", "dead": "false"}, "to": "toroweap_fossil"},
-    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "fire",   "dead": "false"}, "to": "kaibab_fossil"}
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "fire",   "dead": "false"}, "to": "kaibab_fossil"},
+    {"from": "universal_minecraft:coral_block", "properties": {"coral_type": "horn",   "dead": "false"}, "to": "temple_butte_fossil"}
   ]
 }
